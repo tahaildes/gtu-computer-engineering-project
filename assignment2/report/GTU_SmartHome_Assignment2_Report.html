@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>GTU_SmartHome_Assignment2_Report</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1 id="cse-396-microprocessor-based-systems-design-assignment-2">CSE
+396 Microprocessor-Based Systems Design — Assignment 2</h1>
+<p><strong>Project Name:</strong> Natural Language-Based Smart Home
+Automation System with Modular Architecture<br />
+<strong>Date:</strong> March 28, 2026</p>
+<h2 id="cover-page">Cover Page</h2>
+<ul>
+<li><strong>Course name:</strong> CSE 396<br />
+</li>
+<li><strong>Assignment:</strong> 2<br />
+</li>
+<li><strong>Project name:</strong> Natural Language-Based Smart Home
+Automation System with Modular Architecture<br />
+</li>
+<li><strong>Date:</strong> March 28, 2026<br />
+</li>
+<li><strong>Team Members:</strong>
+<ul>
+<li>Emirhan Çalışkan (ID: 230754003)</li>
+<li>Burak Kurtaran (ID: 230751245)</li>
+<li>Ahmet Burak Çelebi (ID: 230756789)</li>
+<li>Dilara Gözen (ID: 230754321)</li>
+<li>Taha Emirhan İdeş (ID: 230758765)</li>
+<li>Yunus Emre Manav (ID: 230752109)</li>
+<li>Zeynep Sude Turan (ID: 230755432)</li>
+<li>Mehmet Akif Pekşen (ID: 230753456)</li>
+</ul></li>
+</ul>
+<h2 id="modulestudent-assignment-table">Module–Student Assignment
+Table</h2>
+<table>
+<colgroup>
+<col style="width: 4%" />
+<col style="width: 17%" />
+<col style="width: 14%" />
+<col style="width: 29%" />
+<col style="width: 12%" />
+<col style="width: 21%" />
+</colgroup>
+<thead>
+<tr>
+<th>Module</th>
+<th>Module Name</th>
+<th>Primary Owner</th>
+<th>Secondary Owner(s)</th>
+<th>Platform</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MOD-01</td>
+<td>ESP32 Sensor HAL</td>
+<td>Emirhan Çalışkan</td>
+<td>Burak Kurtaran</td>
+<td>C++ / ESP32</td>
+<td>BME280, MCP3008 reading</td>
+</tr>
+<tr>
+<td>MOD-02</td>
+<td>ESP32 Actuator HAL</td>
+<td>Ahmet Burak Çelebi</td>
+<td>Dilara Gözen</td>
+<td>C++ / ESP32</td>
+<td>Servo, fan, relay control</td>
+</tr>
+<tr>
+<td>MOD-03</td>
+<td>Audio &amp; STT Pipeline</td>
+<td>Taha Emirhan İdeş</td>
+<td>Emirhan Çalışkan, Mehmet Akif Pekşen</td>
+<td>Python / RPi</td>
+<td>Porcupine + Whisper</td>
+</tr>
+<tr>
+<td>MOD-04</td>
+<td>LLM Intent Engine</td>
+<td>Yunus Emre Manav</td>
+<td>Ahmet Burak Çelebi, Mehmet Akif Pekşen</td>
+<td>Python / RPi</td>
+<td>Qwen 2.5 3B Ollama</td>
+</tr>
+<tr>
+<td>MOD-05</td>
+<td>Device Control &amp; Safety</td>
+<td>Zeynep Sude Turan</td>
+<td>Burak Kurtaran, Taha Emirhan İdeş</td>
+<td>Python / RPi</td>
+<td>MQTT dispatch, safety rules</td>
+</tr>
+<tr>
+<td>MOD-06</td>
+<td>API Server &amp; UI Backend</td>
+<td>Dilara Gözen</td>
+<td>Yunus Emre Manav, Zeynep Sude Turan</td>
+<td>Python / FastAPI</td>
+<td>REST + WebSocket</td>
+</tr>
+</tbody>
+</table>
+<h2 id="system-architecture-diagram">System Architecture Diagram</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────────┐
+│  LAYER 1: Voice Detection &amp; STT (MOD-03)                       │
+│  Porcupine Wake Word → Whisper Transcription                   │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ stt_result_t (callback)
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  LAYER 2: Intent Engine (MOD-04)                                │
+│  LLM (Qwen 2.5 3B) + Sensor Context → intent_t (validated)     │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ intent_result_t (callback)
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  LAYER 3: Control &amp; Safety (MOD-05)                             │
+│  MQTT Dispatch + Rule-Based Safety (Alarms bypass LLM)          │
+└────────────┬────────────────────────────────────┬───────────────┘
+             │                                    │
+             │ device_cmd_t (home/{room}/{dev})  │
+             │ over MQTT                         │ sensor updates
+             ▼                                    │
+┌─────────────────────────────────────┐          │
+│ LAYER 4A: Actuators (MOD-02, ESP32) │          │
+│ Servo, Fan, Heater, Buzzer          │          │
+└─────────────────────────────────────┘          │
+                                              ◄──┘
+                                              │
+             ┌────────────────────────────────┤
+             │                                │
+             │ Sensor Data (home/sensor/data) │
+             │ over MQTT                      │
+             ▼                                │
+┌─────────────────────────────────────┐       │
+│ LAYER 4B: Sensors (MOD-01, ESP32)   │       │
+│ BME280 (I2C), MQ-2/135 (ADC)        │       │
+└─────────────────────────────────────┘       │
+                                              │
+                    ┌─────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  LAYER 5: API &amp; UI Backend (MOD-06)                             │
+│  FastAPI + SQLite + WebSocket + Ngrok Tunnel                   │
+└─────────────────────────────────────────────────────────────────┘
+         │
+         └─────────── REST HTTP / WebSocket ────────────────►
+                      (Web/Mobile Client)</code></pre>
+<h2 id="module-overview">Module Overview</h2>
+<h3 id="mod-01-esp32-sensor-hal">MOD-01: ESP32 Sensor HAL</h3>
+<p>Reads temperature/humidity via BME280 (I2C: GPIO 21 SDA, GPIO 22 SCL)
+and gas/smoke sensors via MCP3008 SPI ADC (GPIO 5 CS, GPIO 23 MOSI, GPIO
+19 MISO, GPIO 18 CLK); publishes readings periodically to MQTT topic
+<code>home/sensor/data</code>.</p>
+<h3 id="mod-02-esp32-actuator-hal">MOD-02: ESP32 Actuator HAL</h3>
+<p>Receives device_cmd_t commands over MQTT on topic
+<code>home/{room}/{device}/cmd</code>; controls servo (SG90 PWM, GPIO
+12), DC fan (PWM+MOSFET, GPIO 13), PTC heater (relay, GPIO 14),
+ultrasonic humidifier (relay, GPIO 15), and buzzer (PWM, GPIO 16).</p>
+<h3 id="mod-03-audio-stt-pipeline">MOD-03: Audio &amp; STT Pipeline</h3>
+<p>Monitors USB/I2S microphone input; detects wake word via Porcupine;
+converts Turkish speech to text via Whisper base model.</p>
+<h3 id="mod-04-llm-intent-engine">MOD-04: LLM Intent Engine</h3>
+<p>Receives STT output + instantaneous sensor snapshot + active user
+profile; sends few-shot prompt to Qwen 2.5 3B (4-bit quantized, Ollama);
+produces Pydantic-validated intent_t JSON.</p>
+<h3 id="mod-05-device-control-safety-layer">MOD-05: Device Control &amp;
+Safety Layer</h3>
+<p>Converts intent_t from MOD-04 to device_cmd_t list; dispatches via
+MQTT topic <code>home/{room}/{device}/cmd</code> to ESP32 units;
+subscribes to <code>home/sensor/data</code> and
+<code>home/sensor/alarm</code> for safety monitoring; applies rule-based
+alert actions, bypassing LLM during critical sensor alarms (temperature
+&gt;40°C, humidity &gt;80%).</p>
+<h3 id="mod-06-api-server-ui-backend">MOD-06: API Server &amp; UI
+Backend</h3>
+<p>Provides REST API and WebSocket endpoints; manages user profiles and
+command logs in SQLite; enables remote access via Ngrok tunnel;
+broadcasts real-time sensor data to client applications
+(web/mobile).</p>
+<h2 id="hardware-platform-summary">Hardware &amp; Platform Summary</h2>
+<p><strong>Central Unit:</strong> - Raspberry Pi 4 (4GB RAM, ARM
+Cortex-A72, 1.5 GHz)</p>
+<p><strong>Remote Control Modules (×2):</strong> - ESP32 (240 MHz CPU,
+520 KB SRAM, built-in Wi-Fi 2.4 GHz)</p>
+<p><strong>Sensors:</strong> - BME280 (I2C @ GPIO 21 SDA / GPIO 22 SCL,
+addr 0x76): Temperature (–40 to +85°C), humidity (0-100%), pressure
+(300-1100 hPa) - MQ-2 (analog via MCP3008 SPI @ GPIO 5 CS / 23 MOSI / 19
+MISO / 18 CLK): Gas/smoke detection (0-10000 ppm range) - MQ-135 (analog
+via MCP3008): Air quality (CO, benzene, alcohol, NH3) - Microphone: USB
+or I2S HAT (Raspberry Pi)</p>
+<p><strong>Actuators:</strong> - Servo Motor SG90 (PWM @ GPIO 12,
+ESP32): Curtain control (0–180°) - DC Fan (PWM @ GPIO 13 + MOSFET,
+ESP32): Ventilation control (0-100%) - PTC Heater (relay @ GPIO 14,
+ESP32): Low-voltage heating - Ultrasonic Humidifier (relay @ GPIO 15,
+ESP32): Humidity regulation - Passive Buzzer (PWM @ GPIO 16, ESP32):
+Audible alarm (0-5 kHz)</p>
+<p><strong>Communication Buses:</strong> - I2C: BME280 sensor interface
+- SPI: MCP3008 ADC interface (analog sensors) - MQTT: Inter-module
+communication over local Wi-Fi - WiFi (2.4 GHz): ESP32 ↔︎ Raspberry Pi
+connectivity - REST / WebSocket: Client application communication -
+Ngrok: Remote tunnel for external access</p>
+<h2 id="inter-module-communication-table">Inter-Module Communication
+Table</h2>
+<table>
+<colgroup>
+<col style="width: 5%" />
+<col style="width: 5%" />
+<col style="width: 17%" />
+<col style="width: 21%" />
+<col style="width: 7%" />
+<col style="width: 22%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>From</th>
+<th>To</th>
+<th>Data</th>
+<th>Type</th>
+<th>Direction</th>
+<th>Channel</th>
+<th>Frequency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MOD-01</td>
+<td>MOD-05</td>
+<td><code>sensor_snapshot_t</code></td>
+<td>JSON via MQTT</td>
+<td>01→05</td>
+<td><code>home/sensor/data</code></td>
+<td>5 seconds</td>
+</tr>
+<tr>
+<td>MOD-01</td>
+<td>MOD-05</td>
+<td><code>sensor_alarm_t</code></td>
+<td>JSON via MQTT</td>
+<td>01→05</td>
+<td><code>home/sensor/alarm</code></td>
+<td>When threshold exceeded</td>
+</tr>
+<tr>
+<td>MOD-03</td>
+<td>MOD-04</td>
+<td><code>stt_result_t</code></td>
+<td>Struct via callback</td>
+<td>03→04</td>
+<td>In-process Python call</td>
+<td>After each wake word</td>
+</tr>
+<tr>
+<td>MOD-04</td>
+<td>MOD-05</td>
+<td><code>intent_result_t</code></td>
+<td>Struct via callback</td>
+<td>04→05</td>
+<td>In-process Python call</td>
+<td>After each command</td>
+</tr>
+<tr>
+<td>MOD-05</td>
+<td>MOD-02</td>
+<td><code>device_cmd_t</code></td>
+<td>JSON via MQTT</td>
+<td>05→02</td>
+<td><code>home/{room}/{device}/cmd</code></td>
+<td>Per intent</td>
+</tr>
+<tr>
+<td>MOD-02</td>
+<td>MOD-05</td>
+<td><code>actuator_state_t</code></td>
+<td>JSON via MQTT</td>
+<td>02→05</td>
+<td><code>home/actuator/status</code></td>
+<td>After each command</td>
+</tr>
+<tr>
+<td>MOD-06</td>
+<td>MOD-04</td>
+<td><code>text_cmd_request_t</code></td>
+<td>REST POST → function call</td>
+<td>06→04</td>
+<td>FastAPI HTTP handler</td>
+<td>Per user command</td>
+</tr>
+<tr>
+<td>MOD-06</td>
+<td>MOD-05</td>
+<td><code>user_profile_t</code></td>
+<td>Direct function call</td>
+<td>06→05</td>
+<td>In-process</td>
+<td>On profile recall</td>
+</tr>
+<tr>
+<td>MOD-05</td>
+<td>MOD-06</td>
+<td><code>sensor_snapshot_t</code></td>
+<td>WebSocket broadcast</td>
+<td>05→06</td>
+<td>WS push</td>
+<td>1 second</td>
+</tr>
+</tbody>
+</table>
+<h2 id="module-dependency-graph">Module Dependency Graph</h2>
+<pre><code>MOD-01 (Sensor HAL) ──────┐
+                          ├─→ MOD-05 (Control &amp; Safety) ──────┐
+MOD-02 (Actuator HAL) ◄───┘                                  ├─→ MOD-06 (API Backend)
+                          ◄──────────────────────────────────┘
+                          
+MOD-03 (STT) ─────→ MOD-04 (Intent Engine) ─┐
+                                              └─→ MOD-05 (Control &amp; Safety)
+                                              
+MOD-04 (Intent Engine) ◄──────── MOD-06 (API Backend via REST)</code></pre>
+<p><strong>Dependency Note:</strong> MOD-01 and MOD-02 are independent;
+MOD-03 feeds into MOD-04; MOD-04 → MOD-05; MOD-05 ↔︎ MOD-06
+(bidirectional for sensor data and profile management).</p>
+<h2 id="known-risks-open-questions">Known Risks &amp; Open
+Questions</h2>
+<table>
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 29%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Risk / Question</th>
+<th>Impact</th>
+<th>Mitigation Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RAM &amp; CPU Bottleneck</strong> (Critical)</td>
+<td>Whisper (STT) + Qwen 2.5 3B (LLM) both demand ~3-4GB RAM on Pi 4;
+concurrent execution risks OOM crash</td>
+<td>Use model offloading (load/unload sequentially); monitor RAM via
+<code>free -h</code>; implement process priority; consider heap
+profiling</td>
+</tr>
+<tr>
+<td><strong>Safety Layer Latency</strong></td>
+<td>If Pi locked in LLM inference, gas/smoke alarm may delay &gt;1s</td>
+<td>Implement critical safety checks at edge (ESP32); bypass LLM on
+alarm; use separate thread for safety</td>
+</tr>
+<tr>
+<td><strong>LLM Inference Latency</strong></td>
+<td>May exceed 10s target on Pi 4</td>
+<td>Use Qwen 2.5 3B quantized; optimize prompt; consider response
+caching</td>
+</tr>
+<tr>
+<td><strong>MQTT Broker Reliability</strong></td>
+<td>Loss of commands/sensor data if Mosquitto crashes</td>
+<td>Implement automatic restart script; use QoS 1 messages; add watchdog
+timer</td>
+</tr>
+<tr>
+<td><strong>STT Wake Word False Positives</strong></td>
+<td>Expensive CPU/memory cycles wasted</td>
+<td>Tune Porcupine sensitivity; test with background noise; implement
+cooldown timer</td>
+</tr>
+<tr>
+<td><strong>Synchronization Issues</strong></td>
+<td>Race conditions between MOD-03/04/05</td>
+<td>Use in-process callbacks instead of shared memory; add mutexes where
+needed</td>
+</tr>
+<tr>
+<td><strong>Hardware Procurement</strong></td>
+<td>ESP32 / Pi shortages or delays</td>
+<td>Reserve hardware early; identify replacements (e.g., STM32H7 for
+ESP32)</td>
+</tr>
+<tr>
+<td><strong>Python ↔︎ C Header Mismatch</strong></td>
+<td>Implementers may deviate from interface spec</td>
+<td>Add validation tests; require header-to-code traceability in
+reviews</td>
+</tr>
+<tr>
+<td><strong>Remote Access Ngrok Limits</strong></td>
+<td>Ngrok free tier has bandwidth/connection limits</td>
+<td>Document Ngrok plan in README; plan for potential upgrade or
+alternative (Cloudflare Tunnel)</td>
+</tr>
+<tr>
+<td><strong>SQLite Concurrency</strong></td>
+<td>Database locks under high command velocity</td>
+<td>Use connection pooling; consider moving to PostgreSQL if needed</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>
