@@ -8,7 +8,7 @@ One-sentence purpose: Parses user intent from speech using Qwen 2.5 3B LLM with 
 
 - Taha Emirhan İldeş (ID: 240104004995)
 - Yunus Emre Manav (ID: 210104004024)
-- Ahmet Burak Çelebi (ID: -)
+- Ahmet Burak Çelebi (ID: 220104004885)
 
 ## Dependencies
 

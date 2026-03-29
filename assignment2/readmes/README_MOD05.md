@@ -5,7 +5,7 @@ One-sentence purpose: Handles device control via MQTT with rule-based safety che
 ## Authors
 
 - Burak Kurtaran (ID: 210104004240)
-- Ahmet Burak Çelebi (ID: -)
+- Ahmet Burak Çelebi (ID: 220104004885)
 
 ## Dependencies
 
