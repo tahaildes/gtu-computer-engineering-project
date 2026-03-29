@@ -1,7 +1,7 @@
 /**
  * @file mod05_control_safety.h
  * @brief Device Control & Safety Layer handling MQTT commands and sensor alarms.
- * @author Primary: Zeynep Sude Turan, Secondary: Burak Kurtaran, Taha Emirhan İdeş
+ * @author Burak Kurtaran (ID: 210104004240), Ahmet Burak Çelebi (ID: 220104004885)
  * @date 2026-03-28
  * @version 0.1
  *

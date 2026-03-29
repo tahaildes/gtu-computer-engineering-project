@@ -1,7 +1,7 @@
 /**
  * @file mod01_sensor_hal.h
  * @brief Hardware Abstraction Layer for ESP32 sensors (BME280, MQ-2/135).
- * @author Primary: Emirhan Çalışkan, Secondary: Burak Kurtaran
+ * @author Emirhan Çalışkan (ID: 220104004955), Mehmet Akif Pekşen (ID: 230104004013)
  * @date 2026-03-28
  * @version 0.1
  *

@@ -1,7 +1,7 @@
 /**
  * @file mod04_intent_engine.h
  * @brief LLM Intent parsing API specification using Qwen 2.5 3B.
- * @author Primary: Yunus Emre Manav, Secondary: Ahmet Burak Çelebi, Mehmet Akif Pekşen
+ * @author Taha Emirhan İldeş (ID: 240104004995), Yunus Emre Manav (ID: 210104004024), Ahmet Burak Çelebi (ID: 220104004885)
  * @date 2026-03-28
  * @version 0.1
  *

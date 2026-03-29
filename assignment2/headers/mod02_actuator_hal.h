@@ -1,7 +1,7 @@
 /**
  * @file mod02_actuator_hal.h
  * @brief Hardware Abstraction Layer for ESP32 actuators (Servo, Fan, Heater, Humidifier, Buzzer).
- * @author Primary: Ahmet Burak Çelebi, Secondary: Dilara Gözen
+ * @author Emirhan Çalışkan (ID: 220104004955), Mehmet Akif Pekşen (ID: 230104004013), Dilara Gözen (ID: 230104004065)
  * @date 2026-03-28
  * @version 0.1
  *

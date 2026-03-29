@@ -1,7 +1,7 @@
 /**
  * @file mod06_api_backend.h
  * @brief REST API and WebSocket Server interface specification.
- * @author Primary: Dilara Gözen, Secondary: Yunus Emre Manav, Zeynep Sude Turan
+ * @author Dilara Gözen (ID: 230104004065), Zeynep Sude Turan (ID: 220104004031), Burak Kurtaran (ID: 210104004240)
  * @date 2026-03-28
  * @version 0.1
  *

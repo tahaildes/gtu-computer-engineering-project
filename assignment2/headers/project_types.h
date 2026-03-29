@@ -1,7 +1,7 @@
 /**
  * @file project_types.h
  * @brief Shared data types and enumerations for all modules in the smart home automation system.
- * @author Team: Emirhan Çalışkan, Burak Kurtaran, Ahmet Burak Çelebi, Dilara Gözen, Taha Emirhan İdeş, Yunus Emre Manav, Zeynep Sude Turan, Mehmet Akif Pekşen
+ * @author Emirhan Çalışkan (ID: 220104004955), Burak Kurtaran (ID: 210104004240), Ahmet Burak Çelebi (ID: 220104004885), Dilara Gözen (ID: 230104004065), Taha Emirhan İldeş (ID: 240104004995), Yunus Emre Manav (ID: 210104004024), Zeynep Sude Turan (ID: 220104004031), Mehmet Akif Pekşen (ID: 230104004013)
  * @date 2026-03-28
  * @version 0.1
  *
