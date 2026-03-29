@@ -7,7 +7,7 @@ One-sentence purpose: Provides a pipeline for wake word detection using Porcupin
 ## Authors
 
 - Taha Emirhan İldeş (ID: 240104004995)
-- Yunus Emre Manav (ID: -)
+- Yunus Emre Manav (ID: 210104004024)
 - Zeynep Sude Turan (ID: 220104004031)
 
 ## Dependencies

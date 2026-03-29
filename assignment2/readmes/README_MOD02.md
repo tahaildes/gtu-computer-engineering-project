@@ -6,7 +6,7 @@ One-sentence purpose: Abstracts servo, fan, heater, humidifier, and buzzer actua
 
 - Emirhan Çalışkan (ID: 220104004955)
 - Mehmet Akif Pekşen (ID: 230104004013)
-- Dilara Gözen (ID: -)
+- Dilara Gözen (ID: 230104004065)
 
 ## Dependencies
 

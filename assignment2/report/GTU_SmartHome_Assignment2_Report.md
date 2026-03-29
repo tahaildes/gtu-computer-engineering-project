@@ -19,9 +19,9 @@
   - Emirhan Çalışkan (ID: 220104004955)
   - Burak Kurtaran (ID: 210104004240)
   - Ahmet Burak Çelebi (ID: -)
-  - Dilara Gözen (ID: -)
+  - Dilara Gözen (ID: 230104004065)
   - Taha Emirhan İdeş (ID: 240104004995)
-  - Yunus Emre Manav (ID: -)
+  - Yunus Emre Manav (ID: 210104004024)
   - Zeynep Sude Turan (ID: 220104004031)
   - Mehmet Akif Pekşen (ID: 230104004013)  
 

@@ -6,7 +6,7 @@ One-sentence purpose: Provides REST API and WebSocket server for remote access a
 
 ## Authors
 
-- Dilara Gözen (ID: -)
+- Dilara Gözen (ID: 230104004065)
 - Zeynep Sude Turan (ID: 220104004031)
 - Burak Kurtaran (ID: 210104004240)
 
