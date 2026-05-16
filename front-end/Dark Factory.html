@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dark Factory — GTU CSE 396</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="simulation.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0b09;
+      --surface:   #14120d;
+      --surface-2: #1a1710;
+      --border:    #2a2418;
+      --text-1:    #e8ddd0;
+      --text-2:    #8a7060;
+      --text-3:    #4a4030;
+      --amber:     #d4870a;
+      --amber-hi:  #f0a020;
+      --ok:        #3ecf6e;
+      --warn:      #f0b030;
+      --danger:    #f04040;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+    body { background: var(--bg); color: var(--text-1); font-family: 'IBM Plex Sans', sans-serif; }
+
+    #root { height: 100%; }
+
+    @keyframes df-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    @keyframes df-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.35; }
+    }
+    @keyframes df-slide-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes df-fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #2a2418; border-radius: 3px; }
+
+    /* Range input global */
+    input[type=range] { cursor: pointer; }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--text-1); border: 2px solid var(--border);
+      box-shadow: 0 0 4px rgba(0,0,0,0.6);
+    }
+    input[type=range]::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--text-1); border: 2px solid var(--border);
+    }
+
+    /* Machine hover effect */
+    .df-machine { transition: filter 0.2s; }
+    .df-machine:hover { filter: brightness(1.15); }
+    .df-machine:hover .df-machine-hover-border { stroke-width: 2 !important; }
+
+    /* Page transition */
+    .df-page-enter { animation: df-fade-in 0.25s ease both; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="FloorMap.jsx"></script>
+  <script type="text/babel" src="MachineDetail.jsx"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+    const { createSim, initActuator, applyCmd, ALARM_COLORS, STATE_COLORS } = window.DFSim;
+
+    /* ── Sensor sidebar card ─────────────────────────── */
+    function EnvCard({ label, value, unit, color, sub }) {
+      return (
+        <div style={{
+          background: '#14120d', border: '1px solid #2a2418', borderRadius: '5px',
+          padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '2px',
+        }}>
+          <span style={{ color: '#4a4030', fontSize: '9px', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '1px', textTransform: 'uppercase' }}>
+            {label}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
+            <span style={{ color: color || '#d4870a', fontSize: '20px', fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700 }}>
+              {value}
+            </span>
+            <span style={{ color: '#3a3020', fontSize: '10px', fontFamily: "'IBM Plex Mono', monospace" }}>{unit}</span>
+          </div>
+          {sub && <span style={{ color: '#3a3020', fontSize: '8px', fontFamily: "'IBM Plex Mono', monospace" }}>{sub}</span>}
+        </div>
+      );
+    }
+
+    /* ── Alarm badge ─────────────────────────────────── */
+    function AlarmBadge({ alarm }) {
+      const colors = { OK: '#3ecf6e', WARNING: '#f0b030', CRITICAL: '#f04040' };
+      const c = colors[alarm] || colors.OK;
+      return (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '8px 12px', borderRadius: '5px',
+          background: c + '12', border: `1px solid ${c}44`,
+        }}>
+          <div style={{
+            width: '7px', height: '7px', borderRadius: '50%', background: c,
+            boxShadow: `0 0 6px ${c}`,
+            animation: alarm !== 'OK' ? `df-pulse ${alarm === 'CRITICAL' ? '0.5' : '1.2'}s ease-in-out infinite` : 'none',
+          }}></div>
+          <span style={{ color: c, fontSize: '11px', fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, letterSpacing: '1px' }}>
+            {alarm}
+          </span>
+          <span style={{ color: c + '88', fontSize: '9px', fontFamily: "'IBM Plex Mono', monospace" }}>
+            {alarm === 'OK' ? '— all clear' : alarm === 'WARNING' ? '— check sensors' : '— evacuate area'}
+          </span>
+        </div>
+      );
+    }
+
+    /* ── Machine mini-card (sidebar) ─────────────────── */
+    function MachineCard({ compressor, onClick }) {
+      const state = (compressor && compressor.state) || 'NORMAL';
+      const col   = STATE_COLORS[state] || '#d4870a';
+      return (
+        <div
+          onClick={onClick}
+          style={{
+            background: '#14120d', border: `1px solid ${col}44`, borderRadius: '5px',
+            padding: '10px 12px', cursor: 'pointer', transition: 'all 0.2s',
+            boxShadow: `0 0 16px ${col}0a`,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = col + '99'; e.currentTarget.style.boxShadow = `0 0 20px ${col}1a`; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = col + '44'; e.currentTarget.style.boxShadow = `0 0 16px ${col}0a`; }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ color: '#5a5040', fontSize: '9px', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '1px' }}>
+              COMPRESSOR
+            </span>
+            <span style={{ color: '#3a3020', fontSize: '9px', fontFamily: "'IBM Plex Mono', monospace" }}>ESP32 #3 ›</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <div style={{
+              padding: '3px 8px', borderRadius: '3px', fontSize: '9px',
+              fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, letterSpacing: '0.8px',
+              background: col + '1a', border: `1px solid ${col}66`, color: col,
+              animation: state === 'FAILURE' ? 'df-pulse 0.6s ease-in-out infinite' : 'none',
+            }}>
+              {state}
+            </div>
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: col,
+              animation: state !== 'NORMAL' ? 'df-pulse 1s ease-in-out infinite' : 'none' }}></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+            {[
+              { label: 'TEMP', value: `${compressor?.temp_c ?? '--'}°C` },
+              { label: 'RPM',  value: `${compressor?.rpm ?? '--'}` },
+              { label: 'VIB',  value: `${compressor?.vibration_g ?? '--'}g` },
+              { label: 'PRESS',value: `${compressor?.pressure_bar ?? '--'} bar` },
+            ].map(item => (
+              <div key={item.label} style={{ display: 'flex', gap: '4px', alignItems: 'baseline' }}>
+                <span style={{ color: '#3a3020', fontSize: '8px', fontFamily: "'IBM Plex Mono', monospace" }}>{item.label}</span>
+                <span style={{ color: col, fontSize: '11px', fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600 }}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: '8px', color: '#3a3020', fontSize: '8px', fontFamily: "'IBM Plex Mono', monospace", textAlign: 'right' }}>
+            tap for details →
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Clock ───────────────────────────────────────── */
+    function Clock() {
+      const [ts, setTs] = useState(new Date());
+      useEffect(() => {
+        const id = setInterval(() => setTs(new Date()), 1000);
+        return () => clearInterval(id);
+      }, []);
+      const pad = n => String(n).padStart(2, '0');
+      return (
+        <span style={{ color: '#4a4030', fontSize: '11px', fontFamily: "'IBM Plex Mono', monospace" }}>
+          {ts.getFullYear()}-{pad(ts.getMonth()+1)}-{pad(ts.getDate())}
+          {' '}
+          <span style={{ color: '#5a5040' }}>{pad(ts.getHours())}:{pad(ts.getMinutes())}:{pad(ts.getSeconds())}</span>
+        </span>
+      );
+    }
+
+    /* ── Toggle ──────────────────────────────────────── */
+    function Toggle({ value, onChange, color }) {
+      return (
+        <div onClick={() => onChange(!value)} style={{
+          width: '40px', height: '22px', borderRadius: '11px',
+          background: value ? (color || '#d4870a') : '#1a1710',
+          border: `1px solid ${value ? (color || '#d4870a') : '#2a2418'}`,
+          cursor: 'pointer', position: 'relative', transition: 'all 0.2s', flexShrink: 0,
+        }}>
+          <div style={{
+            position: 'absolute', top: '3px', left: value ? '20px' : '3px',
+            width: '14px', height: '14px', borderRadius: '50%',
+            background: value ? '#fff' : '#3a3020', transition: 'left 0.2s',
+          }}></div>
+        </div>
+      );
+    }
+
+    /* ── MainScreen ──────────────────────────────────── */
+    function MainScreen({ sensor, compressor, actuator, onMachineClick, liveMode, onToggleLive }) {
+      const alarm    = (sensor && sensor.alarm) || 'OK';
+      const alarmCol = ALARM_COLORS[alarm] || ALARM_COLORS.OK;
+
+      const co2Color  = sensor?.co2_ppm > 1500 ? '#f04040' : sensor?.co2_ppm > 800 ? '#f0b030' : '#3ecf6e';
+      const lpgColor  = sensor?.lpg_ppm > 500  ? '#f04040' : sensor?.lpg_ppm > 300 ? '#f0b030' : '#3ecf6e';
+
+      return (
+        <div className="df-page-enter" style={{
+          height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}>
+          {/* ── TOPBAR ── */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '16px', padding: '10px 20px',
+            borderBottom: '1px solid #1e1a14', background: '#0f0d09', flexShrink: 0,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#d4870a', boxShadow: '0 0 8px #d4870a88' }}></div>
+              <span style={{ color: '#e8ddd0', fontSize: '13px', fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, letterSpacing: '3px' }}>
+                DARK FACTORY
+              </span>
+              <span style={{ color: '#3a3020', fontSize: '9px', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '1px' }}>
+                GTU CSE 396
+              </span>
+            </div>
+
+            <div style={{ width: '1px', height: '18px', background: '#2a2418' }}></div>
+            <Clock/>
+
+            <div style={{ flex: 1 }}></div>
+
+            {/* Alarm indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: alarmCol,
+                animation: alarm !== 'OK' ? 'df-pulse 1s ease-in-out infinite' : 'none' }}></div>
+              <span style={{ color: alarmCol, fontSize: '9px', fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.5px' }}>{alarm}</span>
+            </div>
+
+            <div style={{ width: '1px', height: '18px', background: '#2a2418' }}></div>
+
+            {/* Live toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '9px', fontFamily: "'IBM Plex Mono', monospace", color: '#3a3020' }}>DEMO</span>
+              <Toggle value={liveMode} onChange={onToggleLive} color="#d4870a"/>
+              <span style={{ fontSize: '9px', fontFamily: "'IBM Plex Mono', monospace", color: liveMode ? '#d4870a' : '#3a3020' }}>LIVE</span>
+              {liveMode && <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#d4870a', animation: 'df-pulse 1s ease-in-out infinite' }}></div>}
+            </div>
+          </div>
+
+          {/* ── BODY ── */}
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+
+            {/* Floor map */}
+            <div style={{ flex: 1, minWidth: 0, padding: '8px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: '8px', fontFamily: "'IBM Plex Mono', monospace", color: '#2a2418', letterSpacing: '2px', marginBottom: '4px', paddingLeft: '4px' }}>
+                FACTORY FLOOR — BUILDING A / ZONE 3
+              </div>
+              <div style={{ flex: 1, minHeight: 0, borderRadius: '4px', overflow: 'hidden', border: '1px solid #1e1a14' }}>
+                <FloorMap sensor={sensor} compressor={compressor} actuator={actuator} onMachineClick={onMachineClick}/>
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <div style={{
+              width: '240px', flexShrink: 0, borderLeft: '1px solid #1e1a14',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+                {/* Section: Environment */}
+                <div style={{ fontSize: '8px', fontFamily: "'IBM Plex Mono', monospace", color: '#3a3020', letterSpacing: '2px' }}>
+                  ENVIRONMENT — ESP32 #1
+                </div>
+
+                {/* Alarm */}
+                <AlarmBadge alarm={alarm}/>
+
+                {/* Env metrics */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  <EnvCard label="Temp"     value={sensor?.temp_c       ?? '--'} unit="°C"  color="#d4870a"/>
+                  <EnvCard label="Humidity" value={sensor?.humidity_pct ?? '--'} unit="%"   color="#6090c0"/>
+                  <EnvCard label="CO₂"      value={sensor?.co2_ppm      ?? '--'} unit="ppm" color={co2Color}
+                    sub={sensor?.co2_ppm > 800 ? '⚠ high' : 'normal'}/>
+                  <EnvCard label="LPG"      value={sensor?.lpg_ppm      ?? '--'} unit="ppm" color={lpgColor}
+                    sub={sensor?.lpg_ppm > 300 ? '⚠ high' : 'normal'}/>
+                </div>
+
+                <EnvCard label="Pressure" value={sensor?.pressure_hpa ?? '--'} unit="hPa" color="#8a7060"
+                  sub="atmospheric"/>
+
+                {/* Separator */}
+                <div style={{ height: '1px', background: '#1e1a14', margin: '2px 0' }}></div>
+
+                {/* Section: Machine */}
+                <div style={{ fontSize: '8px', fontFamily: "'IBM Plex Mono', monospace", color: '#3a3020', letterSpacing: '2px' }}>
+                  MACHINE
+                </div>
+                <MachineCard compressor={compressor} onClick={onMachineClick}/>
+
+                {/* Serial log snippet */}
+                <div style={{ background: '#0f0d09', borderRadius: '4px', padding: '8px', border: '1px solid #1e1a14' }}>
+                  <div style={{ fontSize: '8px', fontFamily: "'IBM Plex Mono', monospace", color: '#3a3020', letterSpacing: '1px', marginBottom: '6px' }}>SERIAL LOG</div>
+                  {[
+                    `{"node":"sensor","temp_c":${sensor?.temp_c},"alarm":"${alarm}"}`,
+                    `{"node":"compressor","state":"${compressor?.state}","rpm":${compressor?.rpm}}`,
+                  ].map((line, i) => (
+                    <div key={i} style={{
+                      fontSize: '7.5px', fontFamily: "'IBM Plex Mono', monospace",
+                      color: '#3a3020', wordBreak: 'break-all', marginBottom: '3px',
+                      animation: 'df-fade-in 0.4s ease both',
+                    }}>
+                      <span style={{ color: '#2a2418' }}>&gt; </span>{line}
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── App ─────────────────────────────────────────── */
+    function App() {
+      const [page, setPage] = useState('main');
+      const [liveMode, setLiveMode] = useState(true);
+
+      const [sensor, setSensor] = useState({
+        temp_c: 24.5, humidity_pct: 58.2, pressure_hpa: 1013.1,
+        co2_ppm: 420, lpg_ppm: 115, alarm: 'OK',
+      });
+      const [compressor, setCompressor] = useState({
+        state: 'NORMAL', temp_c: 36.4, rpm: 1457, vibration_g: 0.28,
+        pressure_bar: 8.12, oil_temp_c: 41.3, airflow_lpm: 278, power_w: 753,
+      });
+      const [history, setHistory] = useState({
+        temp_c: [], rpm: [], vibration_g: [], pressure_bar: [],
+        oil_temp_c: [], airflow_lpm: [], power_w: [],
+      });
+      const [actuator, setActuator] = useState(initActuator());
+
+      const simRef = useRef(null);
+
+      useEffect(() => { simRef.current = createSim(); }, []);
+
+      useEffect(() => {
+        if (!liveMode) return;
+        const id = setInterval(() => {
+          if (!simRef.current) return;
+          const { current, history: hist } = simRef.current.tick();
+          setCompressor({ ...current });
+          setHistory({ ...hist });
+          setSensor(simRef.current.tickSensor());
+        }, 1400);
+        return () => clearInterval(id);
+      }, [liveMode]);
+
+      const handleActuatorCmd = useCallback((cmd) => {
+        setActuator(prev => applyCmd(prev, cmd));
+      }, []);
+
+      const handleForceState = useCallback((state) => {
+        if (simRef.current) simRef.current.forceState(state);
+        // Immediately snap compressor to that state range
+        const { STATES, RANGES } = window.DFSim;
+        const g = RANGES[state];
+        if (g) {
+          setCompressor(prev => ({
+            ...prev, state,
+            temp_c:       +(g.temp[0] + (g.temp[1]   - g.temp[0])   * 0.4).toFixed(1),
+            rpm:          Math.round(g.rpm[0] + (g.rpm[1] - g.rpm[0]) * 0.5),
+            vibration_g:  +(g.vib[0] + (g.vib[1]   - g.vib[0])   * 0.4).toFixed(2),
+            pressure_bar: +(g.press[0] + (g.press[1] - g.press[0]) * 0.6).toFixed(2),
+          }));
+        }
+      }, []);
+
+      const toggleLive = useCallback(() => setLiveMode(v => !v), []);
+
+      if (page === 'detail') {
+        return (
+          <div className="df-page-enter" style={{ height: '100vh' }}>
+            <MachineDetail
+              compressor={compressor}
+              history={history}
+              actuator={actuator}
+              onActuatorCmd={handleActuatorCmd}
+              onBack={() => setPage('main')}
+              liveMode={liveMode}
+              onToggleLive={toggleLive}
+              onForceState={handleForceState}
+            />
+          </div>
+        );
+      }
+
+      return (
+        <MainScreen
+          sensor={sensor}
+          compressor={compressor}
+          actuator={actuator}
+          onMachineClick={() => setPage('detail')}
+          liveMode={liveMode}
+          onToggleLive={toggleLive}
+        />
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App/>);
+  </script>
+</body>
+</html>
