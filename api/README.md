@@ -62,10 +62,17 @@ api/
 ```
 #### `POST /ingest/machine`
 ```jsonc
-{ "rpm": 1457.0, "vibration_g": 0.28, "power_w": 753.0, "machine_temp_c": 36.4, "output_units": 42, "timestamp_ms": 1748694523000,
-  "pressure_bar": 8.12, // optional
-  "oil_temp_c": 41.3,   // optional
-  "airflow_lpm": 278.0  // optional
+{
+  "state": "NORMAL",        // NORMAL|HEATING|DEGRADING|CRITICAL|FAILURE
+  "rpm": 1457.0,
+  "vibration_g": 0.28,
+  "power_w": 753.0,
+  "machine_temp_c": 36.4,
+  "output_units": 42,
+  "timestamp_ms": 1748694523000,
+  "pressure_bar": 8.12,     // optional
+  "oil_temp_c": 41.3,       // optional
+  "airflow_lpm": 278.0      // optional
 }
 ```
 #### `POST /ingest/alarm`
@@ -97,10 +104,11 @@ api/
 
 **Enum values:**
 ```
-zone_id:      ZONE_A | ZONE_B | MACHINE
-device_type:  DEV_FAN | DEV_COOLER | DEV_VENT | DEV_BUZZER | DEV_SERVO_VENT | DEV_MIST_MAKER
-risk_level:   RISK_OK | RISK_WATCH | RISK_WARN | RISK_CRITICAL
-source:       RULE | LLM | MANUAL
+zone_id:        ZONE_A | ZONE_B | MACHINE
+device_type:    DEV_FAN | DEV_COOLER | DEV_VENT | DEV_BUZZER | DEV_SERVO_VENT | DEV_MIST_MAKER
+risk_level:     RISK_OK | RISK_WATCH | RISK_WARN | RISK_CRITICAL
+source:         RULE | LLM | MANUAL
+machine_state:  NORMAL | HEATING | DEGRADING | CRITICAL | FAILURE
 ```
 
 ## WebSocket
