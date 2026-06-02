@@ -128,7 +128,7 @@ api/
 **Enum values:**
 ```
 zone_id:        ZONE_A | ZONE_B | MACHINE
-device_type:    DEV_FAN | DEV_COOLER | DEV_VENT | DEV_BUZZER | DEV_SERVO_VENT | DEV_MIST_MAKER
+device_type:    DEV_FAN | DEV_COOLER | DEV_VENT | DEV_BUZZER | DEV_LED | DEV_MIST_MAKER
 risk_level:     RISK_OK | RISK_WATCH | RISK_WARN | RISK_CRITICAL
 source:         RULE | LLM | MANUAL
 machine_state:  NORMAL | HEATING | DEGRADING | CRITICAL | FAILURE

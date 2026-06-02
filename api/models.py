@@ -21,8 +21,9 @@ class DeviceType(str, Enum):
     DEV_COOLER     = "DEV_COOLER"
     DEV_VENT       = "DEV_VENT"
     DEV_BUZZER     = "DEV_BUZZER"
-    DEV_SERVO_VENT = "DEV_SERVO_VENT"
+    DEV_LED        = "DEV_LED"        # new
     DEV_MIST_MAKER = "DEV_MIST_MAKER"
+    DEV_SERVO_VENT = "DEV_SERVO_VENT" # will be removed later
 
 
 class RiskLevel(str, Enum):
