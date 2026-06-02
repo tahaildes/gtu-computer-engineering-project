@@ -114,7 +114,7 @@
         humidity_pct: z.humidity_pct  ?? null,
         co2_ppm:      z.co2_ppm       ?? null,
         pm25:         z.pm25          ?? null,
-        pressure_hpa: null,
+        pressure_hpa: z.pressure_hpa  ?? null,  // from API if available
         alarm:        z.alarm === 'ALARM' ? 'WARNING' : 'OK',
       };
     }
@@ -370,10 +370,22 @@
                     sub={sensor?.pm25 > 35 ? '⚠ high' : 'normal'}/>
                 </div>
 
-                {!liveMode && (
-                  <EnvCard label="Pressure" value={sensor?.pressure_hpa ?? '--'} unit="hPa" color="#8a7060"
-                    sub="atmospheric"/>
-                )}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  <EnvCard
+                    label="LPG"
+                    value={sensor?.lpg_ppm ?? '--'}
+                    unit="ppm"
+                    color={sensor?.lpg_ppm > 500 ? '#f04040' : sensor?.lpg_ppm > 300 ? '#f0b030' : '#3ecf6e'}
+                    sub={sensor?.lpg_ppm > 500 ? '⚠ critical' : sensor?.lpg_ppm > 300 ? '⚠ warn' : 'normal'}
+                  />
+                  <EnvCard
+                    label="Pressure"
+                    value={sensor?.pressure_hpa ?? '--'}
+                    unit="hPa"
+                    color="#8a7060"
+                    sub="atmospheric"
+                  />
+                </div>
 
                 {/* Separator */}
                 <div style={{ height: '1px', background: '#1e1a14', margin: '2px 0' }}></div>
@@ -496,8 +508,15 @@
               const isCritical =
                 msg.alarm?.value > msg.alarm?.threshold * 1.5 ||
                 prev.alarm === 'CRITICAL';
+
+              // capture LPG value from alarm if that's what triggered it
+              const lpgUpdate = msg.alarm?.sensor_field === 'lpg_ppm'
+                ? { lpg_ppm: msg.alarm.value }
+                : {};
+
               return {
                 ...prev,
+                ...lpgUpdate,
                 alarm: isCritical ? 'CRITICAL' : 'WARNING',
               };
             });

@@ -226,18 +226,12 @@ function MachineDetail({ compressor, history, actuator, onActuatorCmd, onBack, l
 
   // Local slider state
   const [fanVal,      setFanVal]      = React.useState(actuator?.fan_pct      || 0);
-  const [sg90Val,     setSg90Val]     = React.useState(actuator?.sg90_angle   || 0);
-  const [as100Val,    setAs100Val]    = React.useState(actuator?.as100_angle  || 0);
   const [buzzerFreq,  setBuzzerFreq]  = React.useState(actuator?.buzzer_freq  || 1000);
 
   // Keep sliders in sync when actuator changes externally
-  React.useEffect(() => { setFanVal(actuator?.fan_pct      || 0); }, [actuator?.fan_pct]);
-  React.useEffect(() => { setSg90Val(actuator?.sg90_angle  || 0); }, [actuator?.sg90_angle]);
-  React.useEffect(() => { setAs100Val(actuator?.as100_angle|| 0); }, [actuator?.as100_angle]);
+  React.useEffect(() => { setFanVal(actuator?.fan_pct || 0); }, [actuator?.fan_pct]);
 
-  const sendFan    = (v) => { setFanVal(v);    onActuatorCmd({ cmd: 'fan',         value: v }); };
-  const sendSg90   = (v) => { setSg90Val(v);   onActuatorCmd({ cmd: 'servo_sg90',  angle: v }); };
-  const sendAs100  = (v) => { setAs100Val(v);  onActuatorCmd({ cmd: 'servo_as100', angle: v }); };
+  const sendFan    = (v) => { setFanVal(v);    onActuatorCmd({ cmd: 'fan',    value: v }); };
   const sendBuzzer = (on) => onActuatorCmd({ cmd: 'buzzer', state: on ? 1 : 0, freq: buzzerFreq });
   const sendFreq   = (f) => { setBuzzerFreq(f); if (actuator?.buzzer) onActuatorCmd({ cmd: 'buzzer', state: 1, freq: f }); };
   const sendLed    = (on) => onActuatorCmd({ cmd: 'led',  state: on ? 1 : 0 });
@@ -368,36 +362,7 @@ function MachineDetail({ compressor, history, actuator, onActuatorCmd, onBack, l
             <div style={valStyle}>{fanVal}%</div>
           </div>
 
-          {/* SERVO SG90 */}
-          <div style={rowStyle}>
-            <div style={labelStyle}>SG90</div>
-            <ServoGauge angle={sg90Val} maxAngle={180} color="#d4870a" size={52}/>
-            <div style={{ flex: 1 }}>
-              <input type="range" min="0" max="180" value={sg90Val}
-                onChange={e => sendSg90(+e.target.value)}
-                style={sliderStyle(sg90Val, 180, '#d4870a')}/>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                <span style={{ color: '#3a3020', fontSize: '8px', fontFamily: "'IBM Plex Mono', monospace" }}>0° closed</span>
-                <span style={{ color: '#3a3020', fontSize: '8px', fontFamily: "'IBM Plex Mono', monospace" }}>90° half</span>
-                <span style={{ color: '#3a3020', fontSize: '8px', fontFamily: "'IBM Plex Mono', monospace" }}>180° open</span>
-              </div>
-            </div>
-            <div style={valStyle}>{sg90Val}°</div>
-          </div>
 
-          {/* SERVO AS100 */}
-          <div style={rowStyle}>
-            <div style={labelStyle}>AS100</div>
-            <ServoGauge angle={as100Val} maxAngle={180} color="#8a7060" size={52}/>
-            <div style={{ flex: 1 }}>
-              <input type="range" min="0" max="180" value={as100Val}
-                onChange={e => sendAs100(+e.target.value)}
-                style={sliderStyle(as100Val, 180, '#8a7060')}/>
-            </div>
-            <div style={{ ...valStyle, color: '#8a7060' }}>{as100Val}°</div>
-          </div>
-
-          {/* BUZZER */}
           <div style={rowStyle}>
             <div style={labelStyle}>BUZZER</div>
             <Toggle value={actuator?.buzzer || false} onChange={sendBuzzer} color="#f07030"/>
