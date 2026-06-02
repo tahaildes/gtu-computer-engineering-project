@@ -515,14 +515,17 @@
       }, [liveMode]);
 
       const handleActuatorCmd = useCallback((cmd) => {
-        setActuator(prev => applyCmd(prev, cmd));
+        setActuator(prev => applyCmd(prev, cmd)); // keep for demo mode simulation
 
         if (liveMode) {
+          // ignore servo commands in live mode — hardware removed
+          if (cmd.cmd === 'servo_sg90' || cmd.cmd === 'servo_as100') return;
+
           const deviceMap = {
-            'fan':        'DEV_FAN',
-            'servo_sg90': 'DEV_SERVO_VENT',
-            'mist':       'DEV_MIST_MAKER',
-            'buzzer':     'DEV_BUZZER',
+            'fan':    'DEV_FAN',
+            'mist':   'DEV_MIST_MAKER',
+            'buzzer': 'DEV_BUZZER',
+            'led':    'DEV_LED',
           };
           const device = deviceMap[cmd.cmd];
           if (device) {
