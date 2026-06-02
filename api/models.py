@@ -46,7 +46,9 @@ class AmbientSnapshot(BaseModel):
     temperature_c: float
     humidity_pct:  float
     co2_ppm:       float
-    pm25:          Optional[float] = None  # was: float — sensor not present on ESP32 #1&#38;#2
+    pm25:          Optional[float] = None  # no sensor on ESP32 #1
+    lpg_ppm:       Optional[float] = None  # MQ2 sensor
+    pressure_hpa:  Optional[float] = None  # BME280
     timestamp_ms:  int
 
 

@@ -102,12 +102,16 @@ AMBIENT_PROFILES = {
         "hum_base":  55.0, "hum_var":  8.0,
         "co2_base":  400.0, "co2_var":  50.0,
         "pm25_base": 10.0, "pm25_var": 5.0,
+        "lpg_base":  110.0, "lpg_var": 20.0,
+        "pres_base": 1013.0, "pres_var": 2.0,
     },
     "ZONE_B": {
         "temp_base": 24.0, "temp_var": 3.5,
         "hum_base":  52.0, "hum_var":  6.0,
         "co2_base":  380.0, "co2_var":  40.0,
         "pm25_base": 8.0,  "pm25_var": 4.0,
+        "lpg_base":  100.0, "lpg_var": 15.0,
+        "pres_base": 1013.0, "pres_var": 2.0,
     },
 }
 
@@ -257,6 +261,8 @@ class AmbientGenerator:
         hum  = p["hum_base"]  - drift * p["hum_var"] / 3 + random.gauss(0, 0.5)
         co2  = p["co2_base"]  + abs(drift) * p["co2_var"] + random.gauss(0, 5)
         pm25 = p["pm25_base"] + abs(drift) * p["pm25_var"] / 2 + random.gauss(0, 0.5)
+        lpg  = p["lpg_base"]  + abs(drift) * p["lpg_var"]       + random.gauss(0, 3)
+        pres = p["pres_base"] + drift * p["pres_var"] / 2       + random.gauss(0, 0.2)
 
         return {
             "zone_id":       zone_id,
@@ -264,6 +270,8 @@ class AmbientGenerator:
             "humidity_pct":  rnd(max(20, min(95, hum)), 1),
             "co2_ppm":       rnd(max(300, co2), 1),
             "pm25":          rnd(max(1, pm25), 1),
+            "lpg_ppm":       rnd(max(0, lpg), 1),
+            "pressure_hpa":  rnd(max(950, pres), 1),
             "timestamp_ms":  ts_now(),
         }
 
@@ -310,14 +318,16 @@ async def ambient_loop(client: SimClient, ambient: AmbientGenerator):
             payload = ambient.generate(zone_id)
             ok = await client.post("/ingest/ambient", payload)
             if ok:
-                t = payload["temperature_c"]
+                t   = payload["temperature_c"]
                 co2 = payload["co2_ppm"]
                 hum = payload["humidity_pct"]
-                pm = payload["pm25"]
+                pm  = payload["pm25"]
+                lpg = payload["lpg_ppm"]
+                prs = payload["pressure_hpa"]
                 print(
                     f"{C.GREEN}[{clock()}] [AMBIENT]  {zone_id}  "
                     f"temp={t}°C  hum={hum}%  co2={co2}ppm  pm25={pm}µg/m³  "
-                    f"alarm=OK{C.RESET}"
+                    f"lpg={lpg}ppm  pres={prs}hPa{C.RESET}"
                 )
         await asyncio.sleep(AMBIENT_INTERVAL)
 

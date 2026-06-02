@@ -55,7 +55,11 @@ async def ingest_ambient(snapshot: AmbientSnapshot):
         (zone, "co2_ppm",       snapshot.co2_ppm,       "ppm", snapshot.timestamp_ms),
     ]
     if snapshot.pm25 is not None:
-        rows.append((zone, "pm25", snapshot.pm25, "µg/m³", snapshot.timestamp_ms))
+        rows.append((zone, "pm25",         snapshot.pm25,         "µg/m³", snapshot.timestamp_ms))
+    if snapshot.lpg_ppm is not None:
+        rows.append((zone, "lpg_ppm",      snapshot.lpg_ppm,      "ppm",   snapshot.timestamp_ms))
+    if snapshot.pressure_hpa is not None:
+        rows.append((zone, "pressure_hpa", snapshot.pressure_hpa, "hPa",   snapshot.timestamp_ms))
     await db.insert_sensor_readings_batch(rows)
 
     # 2. Update twin cache
@@ -65,7 +69,11 @@ async def ingest_ambient(snapshot: AmbientSnapshot):
         "co2_ppm":       snapshot.co2_ppm,
     }
     if snapshot.pm25 is not None:
-        ambient_data["pm25"] = snapshot.pm25
+        ambient_data["pm25"]         = snapshot.pm25
+    if snapshot.lpg_ppm is not None:
+        ambient_data["lpg_ppm"]      = snapshot.lpg_ppm
+    if snapshot.pressure_hpa is not None:
+        ambient_data["pressure_hpa"] = snapshot.pressure_hpa
     state.update_ambient(zone, ambient_data)
     state.update_last_ingest(snapshot.timestamp_ms)
 

@@ -63,7 +63,9 @@ api/
   "temperature_c": 28.5,
   "humidity_pct":  58.2,
   "co2_ppm":       420.0,
-  "pm25":          12.3,        // optional — no sensor on ESP32 #1
+  "pressure_hpa":  1013.1,  // optional — BME280
+  "lpg_ppm":       115.0,   // optional — MQ2 sensor
+  "pm25":          12.3,    // optional — no sensor on ESP32 #1
   "timestamp_ms":  1748694523000
 }
 ```
@@ -190,3 +192,5 @@ python3 simulate.py --url http://192.168.1.50:8000  # custom API URL
 ## Confirmed
 
 - **`pm25` field is optional** — ESP32 #1 firmware confirmed no PM2.5 sensor; field may be omitted entirely. Dashboard shows `--` when absent.
+- **`pressure_hpa` field confirmed** — ESP32 #1 BME280 sensor sends it in the ambient payload.
+- **`lpg_ppm` field confirmed** — ESP32 #1 MQ2 sensor sends it in the ambient payload.
