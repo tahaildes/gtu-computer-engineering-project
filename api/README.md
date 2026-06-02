@@ -63,7 +63,7 @@ api/
   "temperature_c": 28.5,
   "humidity_pct":  58.2,
   "co2_ppm":       420.0,
-  "pm25":          12.3,   // optional — omit if sensor not present
+  "pm25":          12.3,        // optional — no sensor on ESP32 #1
   "timestamp_ms":  1748694523000
 }
 ```
@@ -98,6 +98,22 @@ api/
 #### `POST /cmd/{zone_id}/ack`
 ```jsonc
 { "cmd_id": "a1b2c3d4-uuid", "status": "OK" }
+```
+#### `GET /cmd/{zone_id}` — response
+```jsonc
+// command pending:
+{
+  "has_cmd":     true,
+  "cmd_id":      "a1b2c3d4-uuid",
+  "zone_id":     "ZONE_A",
+  "device_type": "DEV_FAN",
+  "value_pct":   80.0,
+  "relay_state": false,
+  "source":      "LLM"
+}
+
+// nothing pending:
+{ "has_cmd": false }
 ```
 #### `POST /actuator/cmd`
 ```jsonc
@@ -173,4 +189,4 @@ python3 simulate.py --url http://192.168.1.50:8000  # custom API URL
 
 ## Confirmed
 
-- **`pm25` field is optional** — MOD-01 confirmed no PM2.5 sensor on ESP32 #1 & #2; field may be omitted entirely.
+- **`pm25` field is optional** — ESP32 #1 firmware confirmed no PM2.5 sensor; field may be omitted entirely. Dashboard shows `--` when absent.

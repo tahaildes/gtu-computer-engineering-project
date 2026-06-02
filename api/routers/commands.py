@@ -23,9 +23,15 @@ async def get_pending_command(zone_id: ZoneId):
     if result is None:
         return {"has_cmd": False}
 
+    payload = result["payload"]  # already a dict from JSON
     return {
-        "has_cmd": True,
-        "cmd": result["payload"],
+        "has_cmd":     True,
+        "cmd_id":      result["cmd_id"],
+        "zone_id":     payload.get("zone_id"),
+        "device_type": payload.get("device_type"),
+        "value_pct":   payload.get("value_pct", 0.0),
+        "relay_state": payload.get("relay_state", False),
+        "source":      payload.get("source"),
     }
 
 
