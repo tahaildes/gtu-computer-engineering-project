@@ -58,7 +58,14 @@ api/
 
 #### `POST /ingest/ambient`
 ```jsonc
-{ "zone_id": "ZONE_A", "temperature_c": 28.5, "humidity_pct": 58.2, "co2_ppm": 420.0, "pm25": 12.3, "timestamp_ms": 1748694523000 }
+{
+  "zone_id":       "ZONE_A",
+  "temperature_c": 28.5,
+  "humidity_pct":  58.2,
+  "co2_ppm":       420.0,
+  "pm25":          12.3,   // optional — omit if sensor not present
+  "timestamp_ms":  1748694523000
+}
 ```
 #### `POST /ingest/machine`
 ```jsonc
@@ -163,3 +170,7 @@ python3 simulate.py --url http://192.168.1.50:8000  # custom API URL
 - **DeviceType enum** — are `DEV_SERVO_VENT` and `DEV_MIST_MAKER` in the final firmware? (confirm with Emirhan)
 - **MaintenanceReport.confidence** — does MOD-04 output this field? (confirm with Ahmet Burak / Burak)
 - **Pi receiver port** — is `8001` agreed for MOD-03's receiver API?
+
+## Confirmed
+
+- **`pm25` field is optional** — MOD-01 confirmed no PM2.5 sensor on ESP32 #1 & #2; field may be omitted entirely.

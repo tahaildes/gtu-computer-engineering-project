@@ -50,18 +50,23 @@ async def ingest_ambient(snapshot: AmbientSnapshot):
 
     # 1. Write to DB — one row per sensor field
     rows = [
-        (zone, field, getattr(snapshot, field), unit, snapshot.timestamp_ms)
-        for field, unit in AMBIENT_UNITS.items()
+        (zone, "temperature_c", snapshot.temperature_c, "°C",  snapshot.timestamp_ms),
+        (zone, "humidity_pct",  snapshot.humidity_pct,  "%",   snapshot.timestamp_ms),
+        (zone, "co2_ppm",       snapshot.co2_ppm,       "ppm", snapshot.timestamp_ms),
     ]
+    if snapshot.pm25 is not None:
+        rows.append((zone, "pm25", snapshot.pm25, "µg/m³", snapshot.timestamp_ms))
     await db.insert_sensor_readings_batch(rows)
 
     # 2. Update twin cache
-    state.update_ambient(zone, {
+    ambient_data = {
         "temperature_c": snapshot.temperature_c,
         "humidity_pct":  snapshot.humidity_pct,
         "co2_ppm":       snapshot.co2_ppm,
-        "pm25":          snapshot.pm25,
-    })
+    }
+    if snapshot.pm25 is not None:
+        ambient_data["pm25"] = snapshot.pm25
+    state.update_ambient(zone, ambient_data)
     state.update_last_ingest(snapshot.timestamp_ms)
 
     # 3. Forward to Pi (fire-and-forget)
