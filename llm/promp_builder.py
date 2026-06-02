@@ -1,84 +1,56 @@
 """
 prompt_builder.py  —  MOD-04
-TwinState geçmişini Qwen 2.5 3B için anlamlı bir prompt'a çevirir.
-
-Tasarım ilkeleri:
-  - LLM sadece JSON döndürür (başka hiçbir şey yok).
-  - Son 30 snapshot (~60 sn geçmiş) context window'a girer.
-  - Eşik tanımları ve örnek şema prompt'un içine gömülür.
-  - Temperature=0.2 → neredeyse deterministik çıktı.
+TwinState geçmişini Qwen 2.5 için hafifletilmiş ve İngilizce optimize prompt'a çevirir.
 """
 
 import json
 from typing import Sequence
-from factory_types import TwinState, RiskLevel
-
-
-# ──────────────────────────────────────────────
-# EŞİK TANIMLARI  (MOD-03 kural motoruyla senkron tutulmalı)
-# ──────────────────────────────────────────────
-
-THRESHOLDS = {
-    "temperature_c":  {"watch": 32.0, "warn": 38.0, "critical": 45.0},
-    "humidity_pct":   {"watch": 70.0, "warn": 80.0, "critical": 90.0},
-    "co2_ppm":        {"watch": 800,  "warn": 1000,  "critical": 1500},
-    "pm25":           {"watch": 25.0, "warn": 50.0,  "critical": 75.0},
-    "machine_temp_c": {"watch": 65.0, "warn": 80.0,  "critical": 95.0},
-    "vibration_g":    {"watch": 2.5,  "warn": 4.0,   "critical": 6.0},
-    "power_w":        {"watch": 400,  "warn": 500,   "critical": 600},
-    "rpm":            {"warn_low": 800, "warn_high": 3200},
-}
+from factory_types import TwinState
 
 # ──────────────────────────────────────────────
-# SYSTEM PROMPT  (bir kez oluşturulur, her istekte kullanılır)
+# SYSTEM PROMPT  (İngilizce optimize, Türkçe çıktı garantili)
 # ──────────────────────────────────────────────
 
-SYSTEM_PROMPT = """Sen bir endüstriyel IoT fabrikasının kestirimci bakım yapay zekasısın.
-Görevin: verilen sensör geçmişini analiz etmek ve aşağıdaki JSON şemasına uyan bir bakım raporu üretmek.
+SYSTEM_PROMPT = """You are an Industrial IoT predictive maintenance AI.
+Task: Analyze the provided sensor history and return ONLY a valid JSON backup report matching the schema below.
 
-ÇIKTI KURALLARI:
-- YALNIZCA geçerli JSON döndür. Açıklama, markdown, ```json bloğu veya başka hiçbir şey ekleme.
-- Tüm alan adları tam olarak şemadaki gibi olmalı.
-- risk_level: "RISK_OK" | "RISK_WATCH" | "RISK_WARN" | "RISK_CRITICAL"
-- confidence: 0.0 ile 1.0 arasında ondalık sayı
-- predicted_failure_hrs: sayı veya null
+OUTPUT RULES:
+- Return ONLY raw JSON. No explanations, no markdown blocks (```json), no extra text.
+- Field names must strictly match the schema.
+- risk_level values: "RISK_OK" | "RISK_WATCH" | "RISK_WARN" | "RISK_CRITICAL"
+- confidence: float between 0.0 and 1.0
+- recommended_action: Provide a short operator advice in TURKISH language.
 
-JSON ŞEMASI:
+JSON SCHEMA:
 {
   "risk_level": "RISK_OK",
   "predicted_failure_hrs": null,
-  "anomalies": ["string listesi"],
-  "recommended_action": "operatöre yönelik Türkçe öneri",
+  "anomalies": ["string list"],
+  "recommended_action": "Operatör için Türkçe öneri cümlesi",
   "confidence": 0.85,
   "actuator_commands": [
     {
-      "zone_id": "ZONE_A" | "ZONE_B",
-      "device": "DEV_FAN" | "DEV_SERVO_VENT" | "DEV_MIST_MAKER" | "DEV_BUZZER",
-      "value_pct": 0-100,
-      "state": true | false,
+      "zone_id": "ZONE_A",
+      "device": "DEV_FAN",
+      "value_pct": 50,
+      "state": true,
       "source": "LLM"
     }
   ]
 }
 
-EŞİK DEĞERLERİ:
-""" + json.dumps(THRESHOLDS, ensure_ascii=False, indent=2) + """
-
-KARAR REHBERİ:
-- Makine sıcaklığı yükseliyor veya titreşim artıyorsa: Fan + Sis Üretici devreye al (soğutma modu).
-- CO2 veya gaz eşiği aşılıyorsa: Fan + Servo havalandırma kapağı aç, Sis Üretici KAPAT.
-- Hem gaz hem makine sorunu varsa: Gerçek ortam sorunu (gaz) önceliklidir, simülasyon verisini görmezden gel.
-- Hiçbir sorun yoksa: actuator_commands boş liste döndür.
-- Donanım müdahalesi yetersizse: actuator_commands boş bırak, recommended_action ile operatörü bildir.
+DECISION GUIDE:
+- High Temp/Vibration: Turn ON Fan + Mist Maker.
+- High CO2/Gas: Open Fan + Servo Vent, Turn OFF Mist Maker.
+- Both: Gas problem has priority, ignore machine telemetry.
+- No issue: return empty list for actuator_commands.
 """
-
 
 # ──────────────────────────────────────────────
 # SNAPSHOT → ÖZET DÖNÜŞTÜRÜCÜ
 # ──────────────────────────────────────────────
 
 def _snapshot_to_dict(twin: TwinState) -> dict:
-    """Bir TwinState nesnesini LLM'e beslenecek sözlüğe dönüştürür."""
     ambient_list = []
     for a in twin.ambient:
         ambient_list.append({
@@ -94,7 +66,7 @@ def _snapshot_to_dict(twin: TwinState) -> dict:
         "ts_ms":        twin.updated_at,
         "ambient":      ambient_list,
         "machine": {
-            "state":        twin.machine.state.value,
+            "state":        twin.machine.state,
             "rpm":          round(twin.machine.rpm, 0),
             "vibration_g":  round(twin.machine.vibration_g, 2),
             "power_w":      round(twin.machine.power_w, 0),
@@ -104,22 +76,17 @@ def _snapshot_to_dict(twin: TwinState) -> dict:
         "alarms": twin.alarm_flags,
     }
 
-
 # ──────────────────────────────────────────────
-# ANA PROMPT OLUŞTURUCU
+# ANA PROMPT OLUŞTURUCU (İngilizce Trend Notları)
 # ──────────────────────────────────────────────
 
 def build_user_prompt(history: Sequence[TwinState]) -> str:
-    """
-    Son N snapshot'ı alır, kullanıcı mesajını oluşturur.
-    history[0] = en eski, history[-1] = en yeni snapshot.
-    """
     if not history:
         raise ValueError("Prompt oluşturmak için en az 1 snapshot gerekli.")
 
     snapshots = [_snapshot_to_dict(s) for s in history]
 
-    # Trend tespiti: ilk ve son değerleri karşılaştır
+    # Trend tespiti (İngilizceye çevrildi)
     trend_notes = []
     if len(history) >= 2:
         first = history[0]
@@ -128,16 +95,14 @@ def build_user_prompt(history: Sequence[TwinState]) -> str:
         dt_machine = last.machine.machine_temp_c - first.machine.machine_temp_c
         if abs(dt_machine) > 1.0:
             trend_notes.append(
-                f"Makine sıcaklığı {abs(dt_machine):.1f}°C "
-                f"{'arttı' if dt_machine > 0 else 'azaldı'} "
-                f"(son {len(history)*2} saniye)."
+                f"Machine temperature {'increased' if dt_machine > 0 else 'decreased'} "
+                f"by {abs(dt_machine):.1f}°C over the last {len(history)*2} seconds."
             )
 
         dt_vib = last.machine.vibration_g - first.machine.vibration_g
         if abs(dt_vib) > 0.2:
             trend_notes.append(
-                f"Titreşim {abs(dt_vib):.2f}g "
-                f"{'arttı' if dt_vib > 0 else 'azaldı'}."
+                f"Vibration {'increased' if dt_vib > 0 else 'decreased'} by {abs(dt_vib):.2f}g."
             )
 
         for amb in last.ambient:
@@ -146,21 +111,20 @@ def build_user_prompt(history: Sequence[TwinState]) -> str:
                     dt_co2 = amb.co2_ppm - first_amb.co2_ppm
                     if abs(dt_co2) > 50:
                         trend_notes.append(
-                            f"{amb.zone_id.value}: CO2 {abs(dt_co2):.0f} ppm "
-                            f"{'arttı' if dt_co2 > 0 else 'azaldı'}."
+                            f"{amb.zone_id}: CO2 {'increased' if dt_co2 > 0 else 'decreased'} by {abs(dt_co2):.0f} ppm."
                         )
 
     trend_section = (
-        "HESAPLANAN TRENDLER:\n" + "\n".join(f"  - {t}" for t in trend_notes)
+        "CALCULATED TRENDS:\n" + "\n".join(f"  - {t}" for t in trend_notes)
         if trend_notes
-        else "HESAPLANAN TRENDLER: Belirgin trend yok."
+        else "CALCULATED TRENDS: No significant trend detected."
     )
 
     prompt = f"""{trend_section}
 
-SON {len(snapshots)} SNAPSHOT GEÇMİŞİ (en eski → en yeni):
+LAST {len(snapshots)} SNAPSHOT HISTORY (oldest → newest):
 {json.dumps(snapshots, ensure_ascii=False, indent=2)}
 
-Yukarıdaki verileri analiz et ve JSON bakım raporunu döndür."""
+Analyze the telemetry data above and return the required JSON backup report."""
 
     return prompt
