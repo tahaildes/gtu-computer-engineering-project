@@ -93,6 +93,7 @@ async def ingest_machine(snapshot: MachineSnapshot):
 
     # 2. Update twin cache
     machine_data = {
+        "state":          snapshot.state or "NORMAL",
         "rpm":            snapshot.rpm,
         "vibration_g":    snapshot.vibration_g,
         "power_w":        snapshot.power_w,

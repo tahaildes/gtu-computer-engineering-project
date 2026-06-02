@@ -50,6 +50,7 @@ class AmbientSnapshot(BaseModel):
 
 
 class MachineSnapshot(BaseModel):
+    state:          Optional[str] = None  # "NORMAL"|"HEATING"|"DEGRADING"|"CRITICAL"|"FAILURE"
     rpm:            float
     vibration_g:    float
     power_w:        float

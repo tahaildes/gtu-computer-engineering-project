@@ -90,6 +90,64 @@
     const { useState, useEffect, useRef, useCallback } = React;
     const { createSim, initActuator, applyCmd, ALARM_COLORS, STATE_COLORS } = window.DFSim;
 
+    /* ── API config ──────────────────────────────────── */
+    const API_BASE = 'http://localhost:8000';
+    const WS_URL   = 'ws://localhost:8000/ws';
+
+    /* ── Mapping helpers ─────────────────────────────── */
+    function mapMachine(m) {
+      return {
+        state:        m.state        || 'NORMAL',
+        temp_c:       m.machine_temp_c ?? null,
+        rpm:          m.rpm           ?? null,
+        vibration_g:  m.vibration_g   ?? null,
+        pressure_bar: m.pressure_bar  ?? null,
+        oil_temp_c:   m.oil_temp_c    ?? null,
+        airflow_lpm:  m.airflow_lpm   ?? null,
+        power_w:      m.power_w       ?? null,
+      };
+    }
+
+    function mapSensor(z) {
+      return {
+        temp_c:       z.temperature_c ?? null,
+        humidity_pct: z.humidity_pct  ?? null,
+        co2_ppm:      z.co2_ppm       ?? null,
+        pm25:         z.pm25          ?? null,
+        pressure_hpa: null,
+        alarm:        z.alarm === 'ALARM' ? 'WARNING' : 'OK',
+      };
+    }
+
+    function transformHistory(rows) {
+      const hist = { temp_c: [], rpm: [], vibration_g: [], pressure_bar: [], oil_temp_c: [], airflow_lpm: [], power_w: [] };
+      const fieldMap = {
+        machine_temp_c: 'temp_c', rpm: 'rpm', vibration_g: 'vibration_g',
+        pressure_bar: 'pressure_bar', oil_temp_c: 'oil_temp_c',
+        airflow_lpm: 'airflow_lpm', power_w: 'power_w',
+      };
+      rows.filter(r => r.zone_id === 'MACHINE')
+          .forEach(r => {
+            const key = fieldMap[r.sensor_type];
+            if (key) hist[key].push(r.value);
+          });
+      return hist;
+    }
+
+    function appendHistory(prev, m) {
+      const MAX = 60;
+      const append = (arr, val) => val != null ? [...arr.slice(-MAX+1), val] : arr;
+      return {
+        temp_c:       append(prev.temp_c,       m.machine_temp_c),
+        rpm:          append(prev.rpm,           m.rpm),
+        vibration_g:  append(prev.vibration_g,   m.vibration_g),
+        pressure_bar: append(prev.pressure_bar,  m.pressure_bar),
+        oil_temp_c:   append(prev.oil_temp_c,    m.oil_temp_c),
+        airflow_lpm:  append(prev.airflow_lpm,   m.airflow_lpm),
+        power_w:      append(prev.power_w,       m.power_w),
+      };
+    }
+
     /* ── Sensor sidebar card ─────────────────────────── */
     function EnvCard({ label, value, unit, color, sub }) {
       return (
@@ -230,7 +288,6 @@
       const alarmCol = ALARM_COLORS[alarm] || ALARM_COLORS.OK;
 
       const co2Color  = sensor?.co2_ppm > 1500 ? '#f04040' : sensor?.co2_ppm > 800 ? '#f0b030' : '#3ecf6e';
-      const lpgColor  = sensor?.lpg_ppm > 500  ? '#f04040' : sensor?.lpg_ppm > 300 ? '#f0b030' : '#3ecf6e';
 
       return (
         <div className="df-page-enter" style={{
@@ -308,12 +365,15 @@
                   <EnvCard label="Humidity" value={sensor?.humidity_pct ?? '--'} unit="%"   color="#6090c0"/>
                   <EnvCard label="CO₂"      value={sensor?.co2_ppm      ?? '--'} unit="ppm" color={co2Color}
                     sub={sensor?.co2_ppm > 800 ? '⚠ high' : 'normal'}/>
-                  <EnvCard label="LPG"      value={sensor?.lpg_ppm      ?? '--'} unit="ppm" color={lpgColor}
-                    sub={sensor?.lpg_ppm > 300 ? '⚠ high' : 'normal'}/>
+                  <EnvCard label="PM2.5"    value={sensor?.pm25          ?? '--'} unit="µg/m³"
+                    color={sensor?.pm25 > 35 ? '#f04040' : sensor?.pm25 > 15 ? '#f0b030' : '#3ecf6e'}
+                    sub={sensor?.pm25 > 35 ? '⚠ high' : 'normal'}/>
                 </div>
 
-                <EnvCard label="Pressure" value={sensor?.pressure_hpa ?? '--'} unit="hPa" color="#8a7060"
-                  sub="atmospheric"/>
+                {!liveMode && (
+                  <EnvCard label="Pressure" value={sensor?.pressure_hpa ?? '--'} unit="hPa" color="#8a7060"
+                    sub="atmospheric"/>
+                )}
 
                 {/* Separator */}
                 <div style={{ height: '1px', background: '#1e1a14', margin: '2px 0' }}></div>
@@ -351,11 +411,12 @@
     /* ── App ─────────────────────────────────────────── */
     function App() {
       const [page, setPage] = useState('main');
-      const [liveMode, setLiveMode] = useState(true);
+      const [liveMode, setLiveMode] = useState(false);
+      const [report, setReport] = useState(null);
 
       const [sensor, setSensor] = useState({
         temp_c: 24.5, humidity_pct: 58.2, pressure_hpa: 1013.1,
-        co2_ppm: 420, lpg_ppm: 115, alarm: 'OK',
+        co2_ppm: 420, lpg_ppm: 115, pm25: 10, alarm: 'OK',
       });
       const [compressor, setCompressor] = useState({
         state: 'NORMAL', temp_c: 36.4, rpm: 1457, vibration_g: 0.28,
@@ -371,8 +432,9 @@
 
       useEffect(() => { simRef.current = createSim(); }, []);
 
+      /* ── DEMO mode simulation ────────────────────────── */
       useEffect(() => {
-        if (!liveMode) return;
+        if (liveMode) return; // skip if live
         const id = setInterval(() => {
           if (!simRef.current) return;
           const { current, history: hist } = simRef.current.tick();
@@ -383,9 +445,100 @@
         return () => clearInterval(id);
       }, [liveMode]);
 
+      /* ── LIVE mode: REST seed + WebSocket ───────────── */
+      useEffect(() => {
+        if (!liveMode) return;
+
+        // 1. Seed initial state from REST before WS connects
+        fetch(`${API_BASE}/twin`)
+          .then(r => r.json())
+          .then(data => {
+            const machine = data.zones?.MACHINE || {};
+            const zoneA   = data.zones?.ZONE_A  || {};
+            setCompressor(mapMachine(machine));
+            setSensor(mapSensor(zoneA));
+          })
+          .catch(err => console.warn('Failed to fetch /twin:', err));
+
+        fetch(`${API_BASE}/history?limit=60`)
+          .then(r => r.json())
+          .then(rows => setHistory(transformHistory(rows)))
+          .catch(err => console.warn('Failed to fetch /history:', err));
+
+        // 2. Connect WebSocket
+        const ws = new WebSocket(WS_URL);
+
+        ws.onopen = () => console.log('[WS] Connected to Dark Factory API');
+
+        ws.onmessage = (e) => {
+          const msg = JSON.parse(e.data);
+
+          if (msg.type === 'snapshot') {
+            const machine = msg.snapshot?.zones?.MACHINE || {};
+            const zoneA   = msg.snapshot?.zones?.ZONE_A  || {};
+            const mappedSensor = mapSensor(zoneA);
+
+            // Escalate alarm based on machine state
+            const machineState = machine.state || 'NORMAL';
+            if (machineState === 'CRITICAL' || machineState === 'FAILURE') {
+              mappedSensor.alarm = 'CRITICAL';
+            } else if (machineState === 'DEGRADING' || machineState === 'HEATING') {
+              if (mappedSensor.alarm !== 'CRITICAL') mappedSensor.alarm = 'WARNING';
+            }
+
+            setCompressor(mapMachine(machine));
+            setSensor(mappedSensor);
+            setHistory(prev => appendHistory(prev, machine));
+          }
+
+          if (msg.type === 'alarm') {
+            setSensor(prev => {
+              const isCritical =
+                msg.alarm?.value > msg.alarm?.threshold * 1.5 ||
+                prev.alarm === 'CRITICAL';
+              return {
+                ...prev,
+                alarm: isCritical ? 'CRITICAL' : 'WARNING',
+              };
+            });
+          }
+
+          if (msg.type === 'report') {
+            setReport(msg.report);
+          }
+        };
+
+        ws.onclose = () => console.log('[WS] Disconnected');
+        ws.onerror = (err) => console.error('[WS] Error:', err);
+
+        return () => ws.close();
+      }, [liveMode]);
+
       const handleActuatorCmd = useCallback((cmd) => {
         setActuator(prev => applyCmd(prev, cmd));
-      }, []);
+
+        if (liveMode) {
+          const deviceMap = {
+            'fan':        'DEV_FAN',
+            'servo_sg90': 'DEV_SERVO_VENT',
+            'mist':       'DEV_MIST_MAKER',
+            'buzzer':     'DEV_BUZZER',
+          };
+          const device = deviceMap[cmd.cmd];
+          if (device) {
+            fetch(`${API_BASE}/actuator/cmd`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                zone_id:     'ZONE_A',
+                device_type: device,
+                value_pct:   cmd.value ?? (cmd.state ? 100 : 0),
+                relay_state: !!cmd.state,
+              }),
+            }).catch(err => console.warn('[API] actuator cmd failed:', err));
+          }
+        }
+      }, [liveMode]);
 
       const handleForceState = useCallback((state) => {
         if (simRef.current) simRef.current.forceState(state);
@@ -417,6 +570,7 @@
               liveMode={liveMode}
               onToggleLive={toggleLive}
               onForceState={handleForceState}
+              report={report}
             />
           </div>
         );
@@ -430,6 +584,7 @@
           onMachineClick={() => setPage('detail')}
           liveMode={liveMode}
           onToggleLive={toggleLive}
+          report={report}
         />
       );
     }

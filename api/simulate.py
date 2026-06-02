@@ -334,6 +334,7 @@ async def machine_loop(client: SimClient, machine: MachineState):
     """POST /ingest/machine every 1 second."""
     while True:
         payload = machine.update()
+        payload["state"] = machine.state  # add current state
         ok = await client.post("/ingest/machine", payload)
         if ok:
             sc = color_for_state(machine.state)
