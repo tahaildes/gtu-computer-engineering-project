@@ -32,13 +32,12 @@ AMBIENT_UNITS = {
 }
 
 MACHINE_UNITS = {
-    "rpm": "rpm",
+    "rpm":         "rpm",
     "vibration_g": "g",
-    "power_w": "W",
-    "machine_temp_c": "°C",
-    "output_units": "units",
+    "power_w":     "W",
+    "temp_c":      "°C",
     "pressure_bar": "bar",
-    "oil_temp_c": "°C",
+    "oil_temp_c":  "°C",
     "airflow_lpm": "L/min",
 }
 
@@ -88,7 +87,7 @@ async def ingest_machine(snapshot: MachineSnapshot):
     for field, unit in MACHINE_UNITS.items():
         value = getattr(snapshot, field, None)
         if value is not None:
-            rows.append(("MACHINE", field, value, unit, snapshot.timestamp_ms))
+            rows.append(("MACHINE", field, value, unit, snapshot.ts_ms))
     await db.insert_sensor_readings_batch(rows)
 
     # 2. Update twin cache
@@ -97,8 +96,7 @@ async def ingest_machine(snapshot: MachineSnapshot):
         "rpm":            snapshot.rpm,
         "vibration_g":    snapshot.vibration_g,
         "power_w":        snapshot.power_w,
-        "machine_temp_c": snapshot.machine_temp_c,
-        "output_units":   snapshot.output_units,
+        "machine_temp_c": snapshot.temp_c,  # store as machine_temp_c for frontend
     }
     # Include optional fields if present
     if snapshot.pressure_bar is not None:
@@ -109,7 +107,7 @@ async def ingest_machine(snapshot: MachineSnapshot):
         machine_data["airflow_lpm"] = snapshot.airflow_lpm
 
     state.update_machine(machine_data)
-    state.update_last_ingest(snapshot.timestamp_ms)
+    state.update_last_ingest(snapshot.ts_ms)
 
     # 3. Forward to Pi (fire-and-forget)
     asyncio.create_task(_safe_forward(pi_client.forward_machine, payload))

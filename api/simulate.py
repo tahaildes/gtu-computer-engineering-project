@@ -175,13 +175,12 @@ class MachineState:
         # Current smoothed values (start at mid-range of NORMAL)
         r = RANGES["NORMAL"]
         self.temp     = (r["temp"][0] + r["temp"][1]) / 2
-        self.rpm      = (r["rpm"][0] + r["rpm"][1]) / 2
+        self._rpm     = (r["rpm"][0] + r["rpm"][1]) / 2
         self.vib      = (r["vib"][0] + r["vib"][1]) / 2
         self.pressure = (r["pressure"][0] + r["pressure"][1]) / 2
         self.oil_temp = (r["oil_temp"][0] + r["oil_temp"][1]) / 2
         self.airflow  = (r["airflow"][0] + r["airflow"][1]) / 2
         self.power    = (r["power"][0] + r["power"][1]) / 2
-        self.output   = 42
 
     @property
     def state(self) -> str:
@@ -199,8 +198,23 @@ class MachineState:
             sc = color_for_state(self.state)
             print(f"{C.BOLD}{C.MAGENTA}[{clock()}] [STATE]    ═══ Transitioned to {sc}{self.state}{C.RESET}{C.BOLD}{C.MAGENTA} ═══{C.RESET}")
 
-    def update(self) -> dict:
-        """Lerp all values toward the current state's range and return a snapshot."""
+    @property
+    def temp_c(self) -> float:     return rnd(self.temp, 1)
+    @property
+    def rpm(self) -> float:        return rnd(self._rpm, 1)
+    @property
+    def vibration_g(self) -> float: return rnd(self.vib, 2)
+    @property
+    def pressure_bar(self) -> float: return rnd(self.pressure, 2)
+    @property
+    def oil_temp_c(self) -> float:  return rnd(self.oil_temp, 1)
+    @property
+    def airflow_lpm(self) -> float: return rnd(self.airflow, 1)
+    @property
+    def power_w(self) -> float:    return rnd(self.power, 1)
+
+    def update(self):
+        """Lerp all values toward the current state's range."""
         r = RANGES[self.state]
 
         # Pick random targets within the current state's range
@@ -214,36 +228,14 @@ class MachineState:
 
         # Smooth lerp
         self.temp     = lerp(self.temp,     t_temp,     LERP_ALPHA)
-        self.rpm      = lerp(self.rpm,      t_rpm,      LERP_ALPHA)
+        self._rpm     = lerp(self._rpm,     t_rpm,      LERP_ALPHA)
         self.vib      = lerp(self.vib,      t_vib,      LERP_ALPHA)
         self.pressure = lerp(self.pressure, t_pressure, LERP_ALPHA)
         self.oil_temp = lerp(self.oil_temp, t_oil,      LERP_ALPHA)
         self.airflow  = lerp(self.airflow,  t_airflow,  LERP_ALPHA)
         self.power    = lerp(self.power,    t_power,    LERP_ALPHA)
 
-        # Output units — declines in worse states
-        if self.state in ("NORMAL", "HEATING"):
-            self.output = max(0, self.output + random.randint(-1, 2))
-        elif self.state in ("DEGRADING",):
-            self.output = max(0, self.output + random.randint(-2, 1))
-        elif self.state in ("CRITICAL",):
-            self.output = max(0, self.output + random.randint(-3, 0))
-        else:
-            self.output = max(0, self.output - random.randint(0, 5))
-
         self.advance_tick()
-
-        return {
-            "rpm":            rnd(self.rpm, 1),
-            "vibration_g":    rnd(self.vib, 2),
-            "power_w":        rnd(self.power, 1),
-            "machine_temp_c": rnd(self.temp, 1),
-            "output_units":   self.output,
-            "pressure_bar":   rnd(self.pressure, 2),
-            "oil_temp_c":     rnd(self.oil_temp, 1),
-            "airflow_lpm":    rnd(self.airflow, 1),
-            "timestamp_ms":   ts_now(),
-        }
 
 
 # ── Ambient Generator ────────────────────────────────────────
@@ -333,15 +325,26 @@ async def ambient_loop(client: SimClient, ambient: AmbientGenerator):
 async def machine_loop(client: SimClient, machine: MachineState):
     """POST /ingest/machine every 1 second."""
     while True:
-        payload = machine.update()
-        payload["state"] = machine.state  # add current state
+        machine.update()
+        payload = {
+            "node":         "compressor",
+            "state":        machine.state,
+            "temp_c":       machine.temp_c,
+            "rpm":          machine.rpm,
+            "vibration_g":  machine.vibration_g,
+            "power_w":      machine.power_w,
+            "ts_ms":        int(time.time() * 1000),
+            "pressure_bar": machine.pressure_bar,
+            "oil_temp_c":   machine.oil_temp_c,
+            "airflow_lpm":  machine.airflow_lpm,
+        }
         ok = await client.post("/ingest/machine", payload)
         if ok:
             sc = color_for_state(machine.state)
             print(
                 f"{sc}[{clock()}] [MACHINE]  {machine.state:<10}  "
                 f"rpm={payload['rpm']}  vib={payload['vibration_g']}g  "
-                f"temp={payload['machine_temp_c']}°C  "
+                f"temp={payload['temp_c']}°C  "
                 f"pwr={payload['power_w']}W  "
                 f"prs={payload['pressure_bar']}bar  "
                 f"oil={payload['oil_temp_c']}°C{C.RESET}"

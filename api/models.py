@@ -50,17 +50,17 @@ class AmbientSnapshot(BaseModel):
 
 
 class MachineSnapshot(BaseModel):
-    state:          Optional[str] = None  # "NORMAL"|"HEATING"|"DEGRADING"|"CRITICAL"|"FAILURE"
-    rpm:            float
-    vibration_g:    float
-    power_w:        float
-    machine_temp_c: float
-    output_units:   int
-    timestamp_ms:   int
-    # Optional fields present in simulation but not confirmed in spec
-    pressure_bar:   Optional[float] = None
-    oil_temp_c:     Optional[float] = None
-    airflow_lpm:    Optional[float] = None
+    node:         Optional[str]   = None  # "compressor"
+    state:        Optional[str]   = None  # NORMAL|HEATING|DEGRADING|CRITICAL|FAILURE
+    temp_c:       float                   # was: machine_temp_c
+    rpm:          float
+    vibration_g:  float
+    power_w:      float
+    ts_ms:        int                     # was: timestamp_ms
+    pressure_bar: Optional[float] = None
+    oil_temp_c:   Optional[float] = None
+    airflow_lpm:  Optional[float] = None
+    # removed: output_units
 
 
 class AlarmEvent(BaseModel):

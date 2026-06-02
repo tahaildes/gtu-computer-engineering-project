@@ -63,16 +63,16 @@ api/
 #### `POST /ingest/machine`
 ```jsonc
 {
-  "state": "NORMAL",        // NORMAL|HEATING|DEGRADING|CRITICAL|FAILURE
+  "node": "compressor",       // optional, identifies the sender
+  "state": "NORMAL",          // NORMAL|HEATING|DEGRADING|CRITICAL|FAILURE
+  "temp_c": 36.4,
   "rpm": 1457.0,
   "vibration_g": 0.28,
   "power_w": 753.0,
-  "machine_temp_c": 36.4,
-  "output_units": 42,
-  "timestamp_ms": 1748694523000,
-  "pressure_bar": 8.12,     // optional
-  "oil_temp_c": 41.3,       // optional
-  "airflow_lpm": 278.0      // optional
+  "ts_ms": 4021,
+  "pressure_bar": 8.12,       // optional
+  "oil_temp_c": 41.3,         // optional
+  "airflow_lpm": 278.0        // optional
 }
 ```
 #### `POST /ingest/alarm`
