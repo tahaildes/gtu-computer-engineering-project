@@ -4,3 +4,4 @@ api/routers/__pycache__/*
 __pycache__/
 *.pyc
 dark_factory.db
+.DS_Store
