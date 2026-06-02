@@ -3,3 +3,4 @@ api/__pycache__/*
 api/routers/__pycache__/*
 __pycache__/
 *.pyc
+dark_factory.db
