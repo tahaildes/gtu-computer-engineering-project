@@ -17,8 +17,6 @@ Bağımlılıklar:
 """
 
 from __future__ import annotations
-import google.generativeai as genai
-
 import json
 import logging
 import threading
@@ -28,7 +26,6 @@ from enum import Enum
 from typing import Callable, Optional, Sequence
 
 import requests
-genai.configure(api_key="BURAYA_API_ANAHTARINI_YAZ")
 
 from factory_types import (
     ActuatorCmd,
@@ -50,8 +47,8 @@ OLLAMA_MODEL      = "qwen2.5:3b"
 LLM_TEMPERATURE   = 0.2
 LLM_HISTORY_LEN   = 30           # Context'e girecek maksimum snapshot sayısı (~60 sn)
 LLM_INTERVAL_S    = 60.0         # Planlı analiz periyodu (saniye)
-LLM_TIMEOUT_S     = 90           # Ollama yanıt zaman aşımı
-IMMEDIATE_LEVELS  = {RiskLevel.RISK_WARN, RiskLevel.RISK_CRITICAL}
+LLM_TIMEOUT_S     = 180           # Ollama yanıt zaman aşımı
+IMMEDIATE_LEVELS  = {"RISK_WARN", "RISK_CRITICAL"}
 
 # Ortam anomalisini işaret eden alarm bayrak önekleri
 ENV_ALARM_PREFIXES = ("HIGH_CO2", "HIGH_GAS", "HIGH_TEMP", "HIGH_HUMIDITY",
@@ -144,32 +141,33 @@ def _validate_and_filter_commands(
 # ──────────────────────────────────────────────
 def _call_ollama(user_prompt: str) -> str:
     """
-    Geçici olarak Ollama yerine Gemini API / AI Studio kullanır.
-    Döndürür: ham LLM metin yanıtı.
+    Doğrudan lokalde çalışan Ollama'ya (Qwen) istek atar.
     """
+    url = "http://127.0.0.1:11434/api/generate"
+    payload = {
+        "model": OLLAMA_MODEL,
+        "prompt": user_prompt,
+        "system": SYSTEM_PROMPT,
+        "format": "json",
+        "stream": False,
+        "options": {
+            "temperature": LLM_TEMPERATURE
+        }
+    }
+
     try:
-        # Modeli System Prompt ve Temperature=0.2 ile yapılandırıyoruz
-        model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
-            system_instruction=SYSTEM_PROMPT,
-            generation_config=genai.GenerationConfig(
-                temperature=0.2,
-            )
-        )
+        response = requests.post(url, json=payload, timeout=None)
+        response.raise_for_status()
         
-        # İstek atıyoruz
-        response = model.generate_content(user_prompt)
-        raw_text = response.text.strip()
-        
+        raw_text = response.json().get("response", "")
         if not raw_text:
             raise ValueError(LLMError.LLM_ERR_EMPTY)
             
         return raw_text
 
     except Exception as exc:
-        log.error("Gemini API çağrısı başarısız: %s", exc)
+        log.error("Lokal Ollama çağrısı başarısız: %s", exc)
         raise ValueError(LLMError.LLM_ERR_TRANSPORT) from exc
-
 # ──────────────────────────────────────────────
 # JSON DOĞRULAMA VE DÖNÜŞTÜRME
 # ──────────────────────────────────────────────
@@ -294,7 +292,7 @@ class PredictiveEngine:
             "analyses_run": 0,
             "analyses_ok":  0,
             "analyses_err": 0,
-            "last_risk":    RiskLevel.RISK_OK.value,
+            "last_risk":    "RISK_OK",
             "last_run_ts":  0,
         }
 

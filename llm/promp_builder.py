@@ -82,7 +82,7 @@ def _snapshot_to_dict(twin: TwinState) -> dict:
     ambient_list = []
     for a in twin.ambient:
         ambient_list.append({
-            "zone":        a.zone_id.value,
+            "zone":        a.zone_id,
             "temp_c":      round(a.temperature_c, 1),
             "humidity":    round(a.humidity_pct, 1),
             "co2_ppm":     round(a.co2_ppm, 0),
