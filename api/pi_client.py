@@ -11,7 +11,7 @@ logger = logging.getLogger("mod05.pi_client")
 
 # ── Configuration ────────────────────────────────────────────
 # Change this to match your Pi's IP address and port.
-PI_BASE_URL = "http://pi:8001"
+PI_BASE_URL = "http://10.161.35.59:8001"
 
 # Shared httpx client — created lazily on first use
 _client: httpx.AsyncClient | None = None

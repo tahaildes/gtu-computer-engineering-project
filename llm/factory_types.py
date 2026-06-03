@@ -58,9 +58,9 @@ class TwinState:
 @dataclass
 class ActuatorCmd:
     zone_id: ZoneId
-    device: DeviceType
+    device_type: DeviceType
     value_pct: float
-    state: bool
+    relay_state: bool
     source: ActuatorSource
 
 

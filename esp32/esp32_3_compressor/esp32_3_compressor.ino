@@ -18,11 +18,11 @@
 //  AYARLAR — BURAYA KENDİ BİLGİLERİNİZİ GİRİN
 // ============================================================
 
-#define WIFI_SSID      "emr"
-#define WIFI_PASSWORD  "00000000"
+#define WIFI_SSID      "ZeynepS25"
+#define WIFI_PASSWORD  "zeynep123"
 
 // Raspberry Pi'ın sabit IP'si (router'dan sabitlemen önerilir)
-#define API_HOST       "172.20.10.5"
+#define API_HOST       "10.161.35.114"
 #define API_PORT       8000
 #define API_ENDPOINT   "/ingest/machine"
 // ============================================================

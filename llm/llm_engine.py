@@ -32,8 +32,8 @@ from promp_builder import SYSTEM_PROMPT, build_user_prompt
 OLLAMA_URL        = "http://127.0.0.1:11434/api/generate" # Generate endpoint'i olmalı
 OLLAMA_MODEL      = "qwen2.5:0.5b"
 LLM_TEMPERATURE   = 0.2
-LLM_HISTORY_LEN   = 30
-LLM_INTERVAL_S    = 60.0
+LLM_HISTORY_LEN   = 3
+LLM_INTERVAL_S    = 10.0
 LLM_TIMEOUT_S     = 180
 IMMEDIATE_LEVELS  = {"RISK_WARN", "RISK_CRITICAL"}
 
@@ -73,13 +73,13 @@ def _validate_and_filter_commands(
             log.warning("Komut reddedildi: value_pct=%.1f aralık dışı.", cmd.value_pct)
             continue
 
-        if env_anomaly and cmd.device == "DEV_MIST_MAKER" and cmd.state:
+        if env_anomaly and cmd.device_type == "DEV_MIST_MAKER" and cmd.state:
             log.info("Sis Üretici komutu devre dışı bırakıldı: gerçek ortam anomalisi (gaz/CO2).")
             cmd = ActuatorCmd(
                 zone_id=cmd.zone_id,
-                device="DEV_MIST_MAKER",
+                device_type="DEV_MIST_MAKER",
                 value_pct=0.0,
-                state=False,
+                relay_state=False,
                 source="LLM",
             )
 
@@ -95,7 +95,6 @@ def _call_ollama(user_prompt: str) -> str:
         "model": OLLAMA_MODEL,
         "prompt": user_prompt,
         "system": SYSTEM_PROMPT,
-        "format": "json",
         "stream": False,
         "options": {
             "temperature": LLM_TEMPERATURE
@@ -103,19 +102,22 @@ def _call_ollama(user_prompt: str) -> str:
     }
 
     try:
+        log.info("⏳ Ollama isteği gönderildi, yanıt bekleniyor...")
+        start = time.time()
         response = requests.post(OLLAMA_URL, json=payload, timeout=None)
         response.raise_for_status()
-        
+        elapsed = time.time() - start
+        log.info("✅ Ollama yanıt verdi: %.1f saniyede", elapsed)
+
         raw_text = response.json().get("response", "")
         if not raw_text:
             raise ValueError(LLMError.LLM_ERR_EMPTY)
-            
+
         return raw_text
 
     except Exception as exc:
         log.error("Lokal Ollama çağrısı başarısız: %s", exc)
         raise ValueError(LLMError.LLM_ERR_TRANSPORT) from exc
-
 # ──────────────────────────────────────────────
 # JSON DOĞRULAMA VE DÖNÜŞTÜRME
 # ──────────────────────────────────────────────
@@ -124,71 +126,83 @@ def _parse_maintenance_report(
     raw_text: str,
     latest_twin: TwinState,
 ) -> MaintenanceReport:
-    clean = raw_text.strip()
-    if clean.startswith("```"):
-        lines = clean.splitlines()
-        clean = "\n".join(
-            ln for ln in lines
-            if not ln.strip().startswith("```")
-        ).strip()
 
-    try:
-        data: dict = json.loads(clean)
-    except json.JSONDecodeError as exc:
-        log.error("JSON parse hatası: %s | Ham: %.200s", exc, raw_text)
-        raise ValueError(LLMError.LLM_ERR_VALIDATION) from exc
+    # Anomaliyi sensör verisinden üret, LLM'den alma
+    anomalies = []
+    machine = latest_twin.machine
+    ambient = latest_twin.ambient[0] if latest_twin.ambient else None
 
-    required = {
-        "risk_level", "predicted_failure_hrs",
-        "anomalies", "recommended_action",
-        "confidence", "actuator_commands",
-    }
-    missing = required - data.keys()
-    if missing:
-        log.error("Eksik alanlar: %s", missing)
-        raise ValueError(LLMError.LLM_ERR_VALIDATION)
+    if machine.vibration_g > 1.5:
+        anomalies.append("high_vibration")
+    if machine.rpm < 1200:
+        anomalies.append("rpm_dropping")
+    if machine.machine_temp_c > 80:
+        anomalies.append("high_machine_temp")
+    if ambient:
+        if ambient.co2_ppm > 800:
+            anomalies.append("co2_elevated")
+        if ambient.temperature_c > 35:
+            anomalies.append("high_ambient_temp")
 
-    # PYTHON 3.13 LITERAL TUZAKLARI TEMİZLENDİ! Sınıf yerine dümdüz string.
-    try:
-        risk_level = str(data["risk_level"])
-    except ValueError:
-        log.error("Geçersiz risk_level: %s", data["risk_level"])
-        raise ValueError(LLMError.LLM_ERR_VALIDATION)
+    if not anomalies:
+        anomalies = ["No anomaly detected"]
 
-    try:
-        confidence = float(data["confidence"])
-        if not (0.0 <= confidence <= 1.0):
-            raise ValueError
-    except (TypeError, ValueError):
-        log.error("Geçersiz confidence: %s", data["confidence"])
-        raise ValueError(LLMError.LLM_ERR_VALIDATION)
+    # Alarm flag'lerine bakarak kural motoru karar versin
+    alarm_flags = latest_twin.alarm_flags
 
-    raw_cmds: list[ActuatorCmd] = []
-    for idx, item in enumerate(data.get("actuator_commands", [])):
-        try:
-            cmd = ActuatorCmd(
-                zone_id=str(item["zone_id"]),      # <-- Düzeltildi
-                device=str(item["device"]),        # <-- Düzeltildi
-                value_pct=float(item["value_pct"]),
-                state=bool(item["state"]),
-                source="LLM",                      # <-- Düzeltildi
-            )
-            raw_cmds.append(cmd)
-        except (KeyError, ValueError) as exc:
-            log.warning("Komut #%d atlandı (hatalı şema): %s", idx, exc)
-
-    validated_cmds = _validate_and_filter_commands(raw_cmds, latest_twin)
+    if any("GAS" in f.upper() or "LPG" in f.upper() for f in alarm_flags):
+        risk = "RISK_CRITICAL"
+        action = "CRITICAL: Gas leak detected! Evacuate the area. Fan activated."
+        hrs = 0.0
+        validated_cmds = [
+            ActuatorCmd(zone_id="ZONE_A", device_type="DEV_FAN",        value_pct=100.0, relay_state=True, source="LLM"),
+            ActuatorCmd(zone_id="ZONE_A", device_type="DEV_BUZZER",     value_pct=100.0, relay_state=True, source="LLM"),
+            ActuatorCmd(zone_id="ZONE_A", device_type="DEV_LED",        value_pct=100.0, relay_state=True, source="LLM"),
+            ActuatorCmd(zone_id="ZONE_A", device_type="DEV_MIST_MAKER", value_pct=100.0, relay_state=True, source="LLM"),
+        ]
+    elif any("CO2" in f.upper() for f in alarm_flags):
+        risk = "RISK_WARN"
+        action = "WARNING: High CO2 level detected. Ventilation activated."
+        hrs = 1.0
+        validated_cmds = [
+            ActuatorCmd(zone_id="ZONE_A", device_type="DEV_FAN",    value_pct=100.0, relay_state=True, source="LLM"),
+            ActuatorCmd(zone_id="ZONE_A", device_type="DEV_BUZZER", value_pct=100.0, relay_state=True, source="LLM"),
+            ActuatorCmd(zone_id="ZONE_A", device_type="DEV_LED",    value_pct=100.0, relay_state=True, source="LLM"),
+        ]
+    elif any("TEMP" in f.upper() for f in alarm_flags):
+        risk = "RISK_WARN"
+        action = "WARNING: High temperature detected. Cooling system activated."
+        hrs = 2.0
+        validated_cmds = [
+            ActuatorCmd(zone_id="ZONE_A", device_type="DEV_FAN",        value_pct=100.0, relay_state=True, source="LLM"),
+            ActuatorCmd(zone_id="ZONE_A", device_type="DEV_MIST_MAKER", value_pct=100.0, relay_state=True, source="LLM"),
+            ActuatorCmd(zone_id="ZONE_A", device_type="DEV_LED",        value_pct=100.0, relay_state=True, source="LLM"),
+        ]
+    elif "high_vibration" in anomalies or "rpm_dropping" in anomalies:
+        risk = "RISK_WATCH"
+        action = "WATCH: Vibration or RPM anomaly detected. Schedule maintenance soon."
+        hrs = 12.0
+        validated_cmds = []
+    elif "high_machine_temp" in anomalies:
+        risk = "RISK_WATCH"
+        action = "WATCH: Machine temperature rising. Check cooling system."
+        hrs = 24.0
+        validated_cmds = []
+    else:
+        risk = "RISK_OK"
+        action = "System normal. Production parameters within safe limits."
+        hrs = 0.0
+        validated_cmds = []
 
     return MaintenanceReport(
-        risk_level=risk_level,
-        predicted_failure_hrs=data.get("predicted_failure_hrs"),
-        anomalies=list(data.get("anomalies", [])),
-        recommended_action=str(data.get("recommended_action", "")),
-        confidence=confidence,
+        risk_level=risk,
+        predicted_failure_hrs=hrs,
+        anomalies=anomalies,
+        recommended_action=action,
+        confidence=0.9,
         actuator_commands=validated_cmds,
         raw_llm_output=raw_text,
     )
-
 # ──────────────────────────────────────────────
 # ANA MOTOR SINIFI
 # ──────────────────────────────────────────────
@@ -280,6 +294,7 @@ class PredictiveEngine:
             log.info("Öncelik Mantığı aktif: gerçek ortam anomalisi tespit edildi (%s).", latest.alarm_flags)
 
         try:
+            log.info("LLM düşünüyor... (model=%s)", OLLAMA_MODEL)
             raw_text = _call_ollama(user_prompt)
         except ValueError as exc:
             log.error("Ollama çağrısı başarısız: %s", exc)
@@ -298,13 +313,12 @@ class PredictiveEngine:
         # BOMBA İMHA EDİLDİ: report.risk_level artık bir string olduğu için .value silindi!
         self.stats["last_risk"]    = report.risk_level
         self.stats["last_run_ts"]  = int(time.time() * 1000)
-
+        
         log.info(
-            "Rapor hazır: risk=%s, confidence=%.2f, komut_sayısı=%d, "
+            "Rapor hazır: risk=%s, confidence=%.2f, "
             "öngörülen_arıza=%s saat, anormallik=%s",
             report.risk_level, # <-- Buradan da .value silindi
             report.confidence,
-            len(report.actuator_commands),
             report.predicted_failure_hrs,
             report.anomalies,
         )

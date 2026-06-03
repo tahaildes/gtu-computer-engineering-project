@@ -62,8 +62,8 @@ def on_report_ready(report: MaintenanceReport):
 def on_commands_ready(cmds: list[ActuatorCmd]):
     print("⚙️  DONANIM KOMUTLARI:")
     for cmd in cmds:
-        durum = "AÇIK" if cmd.state else "KAPALI"
-        print(f"   -> {cmd.device} ({cmd.zone_id}): %{cmd.value_pct} - {durum} [Kaynak: {cmd.source}]")
+        durum = "AÇIK" if cmd.relay_state else "KAPALI"
+        print(f"   -> {cmd.device_type} ({cmd.zone_id}): %{cmd.value_pct} - {durum} [Kaynak: {cmd.source}]")
     print("-" * 50 + "\n")
 
 # ──────────────────────────────────────────────
@@ -100,7 +100,7 @@ if __name__ == "__main__":
         
         # LLM'in düşünmesi ve raporu döndürmesi için biraz bekleyelim
         print("\nLLM düşünmeye başladı, rapor bekleniyor...")
-        time.sleep(15) 
+        time.sleep(300) 
 
     except KeyboardInterrupt:
         print("\nTest iptal edildi.")

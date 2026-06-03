@@ -9,18 +9,18 @@ import httpx
 from factory_types import MaintenanceReport, ActuatorCmd
 from llm_engine import PredictiveEngine
 
-API_URL = "http://10.161.35.59:8000"  # API sunucusunun adresi
-
+API_URL = "http://10.161.35.114:8000"
 log = logging.getLogger("pi_callbacks")
 
-
 def on_report(report: MaintenanceReport) -> None:
+    import time
     payload = {
         "risk_level":            report.risk_level,
-        "predicted_failure_hrs": report.predicted_failure_hrs,
+        "predicted_failure_hrs": report.predicted_failure_hrs if report.predicted_failure_hrs is not None else 0.0,
         "anomalies":             report.anomalies,
         "recommended_action":    report.recommended_action,
         "confidence":            report.confidence,
+        "timestamp_ms":          int(time.time() * 1000),
     }
     try:
         response = httpx.post(f"{API_URL}/decision/report", json=payload, timeout=10.0)
@@ -34,7 +34,7 @@ def on_commands(commands: list) -> None:
     for cmd in commands:
         payload = {
             "zone_id":     cmd.zone_id,
-            "device_type": cmd.device,
+            "device_type": cmd.device_type,
             "value_pct":   cmd.value_pct,
             "relay_state": cmd.state,
             "source":      cmd.source,
@@ -42,7 +42,7 @@ def on_commands(commands: list) -> None:
         try:
             response = httpx.post(f"{API_URL}/decision/actuator", json=payload, timeout=10.0)
             response.raise_for_status()
-            log.info("Komut gönderildi: %s/%s", cmd.zone_id, cmd.device)
+            log.info("Komut gönderildi: %s/%s", cmd.zone_id, cmd.device_type)
         except Exception as exc:
             log.error("Komut gönderilemedi: %s", exc)
 
