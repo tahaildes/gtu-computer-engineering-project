@@ -594,11 +594,11 @@ alarm_status:   OK | WARNING | CRITICAL
 
 | Module | Member(s) |
 |--------|-----------|
-| MOD-01 (ESP32 #1 & #2 — Ambient) | Emirhan Çalışkan, Mehmet Akif Pekşen |
-| MOD-02 (ESP32 #3 — Machine) | Dilara Gözen, Zeynep Sude Turan |
-| MOD-03 (Digital Twin / Pi) | — |
-| MOD-04 (LLM Engine) | Ahmet Burak / Burak |
-| MOD-05 (API Hub & Dashboard) | Yunus Emre Manav, Çelebi |
+| MOD-01 (ESP32 #1 & #2 — Ambient) | Emirhan Çalışkan, Mehmet Akif Pekşen, Ahmet Burak Çelebi, Burak Kurtaran |
+| MOD-02 (ESP32 #3 — Machine) | Emirhan Çalışkan, Ahmet Burak Çelebi, Mehmet Akif Pekşen |
+| MOD-03 (Digital Twin / Pi) | Zeynep Sude Turan, Dilara Gözen, Taha Emirhan İldeş |
+| MOD-04 (LLM Engine) | Zeynep Sude Turan, Dilara Gözen, Yunus Emre Manav |
+| MOD-05 (API Hub & Dashboard) | Yunus Emre Manav, Taha Emirhan İldeş, Burak Kurtaran |
 
 ---
 
